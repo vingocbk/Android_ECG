@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout class="androidx.appcompat.app.AlertController$RecycleListView" xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btnSend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="50dp"
+        android:alpha="0.4"
+        android:text="@string/Start">
+    </Button>
+    <Button
+        android:layout_below="@+id/btnSend"
+        android:id="@+id/btnOn"
+        android:text="On"
+        android:visibility="invisible"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    </Button>
+    <Button
+        android:layout_below="@+id/btnOn"
+        android:id="@+id/btnOff"
+        android:text="Off"
+        android:visibility="invisible"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    </Button>
+
+    <ImageView
+        android:id="@+id/imgBleConnect"
+        android:background="@mipmap/ble_disconnect"
+        android:layout_centerHorizontal="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    </ImageView>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@mipmap/elcom_logo">
+    </ImageView>
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/graph"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </com.jjoe64.graphview.GraphView>
+
+
+
+</RelativeLayout>
