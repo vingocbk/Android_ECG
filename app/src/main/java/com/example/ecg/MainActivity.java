@@ -1,10 +1,14 @@
 package com.example.ecg;
 
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.BLUETOOTH;
+import static android.Manifest.permission.BLUETOOTH_ADMIN;
 import static com.example.ecg.R.*;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -31,14 +35,21 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
     private List<ScanFilter> filters;
     private BluetoothGatt mGatt;
     String LogFunction = "function";
+    private static final int REQUEST_BLUETOOTH_ADMIN_ID = 1;
+    private static final int REQUEST_LOCATION_ID = 2;
+    private static final int REQUEST_BLUETOOTH_ID = 3;
 
 //    BluetoothGatt mGatt;
     BluetoothGattService mCustomService;
@@ -66,8 +80,18 @@ public class MainActivity extends AppCompatActivity {
     LineGraphSeries<DataPoint> series;
     double y = 0;
     double x = 0;
-    Button btnSend, btnOn, btnOff;
+    Button btnSend;
+    Spinner spnFrequency;
+    CheckBox chekRealTime;
     ImageView imgBleConnect;
+    ProgressBar prgLoadBluetooth;
+    int start_send_data             = 's'
+            , stop_send_data        = 't'
+            , send_real_time        = 'u'
+            , send_not_real_time    = 'v';
+
+    int[] frequency = {'0','1','2','3'};
+    int dataEcg = 0, pre_dataEcg = 0, count_lost = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,6 +102,88 @@ public class MainActivity extends AppCompatActivity {
 
 
         Log.i(LogFunction, "onCreate");
+        bleCheck();
+        locationCheck();
+        initLayout();
+        setDataBegin();
+
+
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                for(int i = 0; i < 1000; i++){
+                    x = x+1;
+                    y = x*x;
+                    series.appendData(new DataPoint(x, y),true, 1000);
+                }
+//                graph.getViewport().scrollToEnd();
+//                graph.addSeries(series);
+
+                if(mGatt == null || mCustomService == null){
+                    Log.w("writeCharacteristic", "NOT CONNECT");
+                    return;
+                }
+                if(btnSend.getText().toString().equals("START")){
+                    btnSend.setText("STOP");
+                    mWriteCharacteristic.setValue(start_send_data,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                    mGatt.writeCharacteristic(mWriteCharacteristic);
+                }
+                else if(btnSend.getText().toString().equals("STOP")){
+                    btnSend.setText("START");
+                    mWriteCharacteristic.setValue(stop_send_data,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                    mGatt.writeCharacteristic(mWriteCharacteristic);
+                }
+            }
+        });
+
+        spnFrequency.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                //Toast.makeText(MainActivity.this, String.valueOf(frequency[i]), Toast.LENGTH_SHORT).show();
+                if(mGatt == null || mCustomService == null){
+                    Log.w("writeCharacteristic", "NOT CONNECT");
+                    return;
+                }
+                mWriteCharacteristic.setValue(frequency[i],android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                mGatt.writeCharacteristic(mWriteCharacteristic);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
+        chekRealTime.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if(mGatt == null || mCustomService == null){
+                    Log.w("writeCharacteristic", "NOT CONNECT");
+                    return;
+                }
+                if(b){
+                    mWriteCharacteristic.setValue(send_real_time,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                }
+                else{
+                    mWriteCharacteristic.setValue(send_not_real_time,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                }
+                mGatt.writeCharacteristic(mWriteCharacteristic);
+
+            }
+        });
+
+        imgBleConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                prgLoadBluetooth.setVisibility(View.VISIBLE);
+                onResume();
+            }
+        });
+
+    }
+
+
+    private void bleCheck() {
         mHandler = new Handler();
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, "BLE Not Supported",
@@ -87,16 +193,47 @@ public class MainActivity extends AppCompatActivity {
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
+        if (ActivityCompat.checkSelfPermission(this, BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
+            // Bluetooth permission has not been granted.
+            ActivityCompat.requestPermissions(this,new String[]{BLUETOOTH},REQUEST_BLUETOOTH_ID);
+        }
+        if (ActivityCompat.checkSelfPermission(this, BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
+            // Bluetooth admin permission has not been granted.
+            ActivityCompat.requestPermissions(this, new String[]{BLUETOOTH_ADMIN}, REQUEST_BLUETOOTH_ADMIN_ID);
+        }
+    }
 
+    private void locationCheck() {
+        if (ActivityCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Location permission has not been granted.
+            ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, REQUEST_LOCATION_ID);
+        }
+    }
 
-
+    private void initLayout() {
+        chekRealTime = findViewById(R.id.chekRealTime);
+        spnFrequency = findViewById(R.id.spnFrequency);
         btnSend = findViewById(id.btnSend);
-        btnOn = findViewById(id.btnOn);
-        btnOff = findViewById(id.btnOff);
         graph = (GraphView) findViewById(id.graph);
         imgBleConnect = findViewById(id.imgBleConnect);
+        prgLoadBluetooth = findViewById(R.id.prgLoadBluetooth);
+    }
 
+    private void setDataBegin() {
+        List<String> list = new ArrayList<>();
+        list.add("125Hz");
+        list.add("250Hz");
+        list.add("500Hz");
+        list.add("1KHz");
+        //ArrayAdapter spinAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, list);
+        ArrayAdapter spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, list);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_item);
+        spnFrequency.setAdapter(spinnerAdapter);
+        spnFrequency.setSelection(1);
+        customGraph();
+    }
 
+    protected void customGraph() {
         series = new LineGraphSeries<DataPoint>();
 //        graph.getViewport().setXAxisBoundsManual(true);
         graph.getViewport().setYAxisBoundsManual(true);
@@ -106,89 +243,16 @@ public class MainActivity extends AppCompatActivity {
         graph.getViewport().setScrollable(true);
         graph.getViewport().setScrollableY(true);
 //        graph.getViewport().setMaxXAxisSize(1000);
-//        graph.getViewport().s
 
-        graph.getViewport().setMinY(0);
-        graph.getViewport().setMaxY(3200);
-//        graph.getViewport().setMinX(-1);
-//        graph.getViewport().setMaxX(12);
+//        graph.getViewport().setMinY(-2);
+//        graph.getViewport().setMaxY(2);
 
+        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time (ms)");
+        graph.getGridLabelRenderer().setVerticalAxisTitle("Voltage (mV)");
 
-
-//        series.appendData(new DataPoint(1500, 0.1),true, 500);
-//        series.appendData(new DataPoint(1520, 0.2),true, 500);
         graph.addSeries(series);
-
-
-
-
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-//                for(int i = 0; i < 1000; i++){
-//                    x = x+0.1;
-//                    y = Math.sin(x);
-//                    series.appendData(new DataPoint(x, y),true, 1000,true);
-//                }
-//                graph.getViewport().scrollToEnd();
-//                graph.addSeries(series);
-
-
-                if(mGatt == null || mCustomService == null){
-                    Log.w("writeCharacteristic", "NOT CONNECT");
-                    return;
-                }
-                if(btnSend.getText().toString().equals("START")){
-                    btnSend.setText("STOP");
-                    // send 's'
-                    mWriteCharacteristic.setValue('s',android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
-                    mGatt.writeCharacteristic(mWriteCharacteristic);
-                }
-                else if(btnSend.getText().toString().equals("STOP")){
-                    btnSend.setText("START");
-                    // send 't'
-                    mWriteCharacteristic.setValue('t',android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
-                    mGatt.writeCharacteristic(mWriteCharacteristic);
-                }
-
-
-//                mWriteCharacteristic.setValue(65,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
-//                if(!mGatt.writeCharacteristic(mWriteCharacteristic)){
-//                    Log.w("writeCharacteristic", "Failed to write characteristic");
-//                }
-            }
-        });
-
-        btnOn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!mGatt.setCharacteristicNotification(mReadCharacteristic,true)) {
-                    Log.w("writeCharacteristic", "Failed to setCharacteristicNotification");
-                }
-                BluetoothGattDescriptor descriptor = mReadCharacteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                mGatt.writeDescriptor(descriptor); //descriptor write operation successfully started?
-
-            }
-        });
-        btnOff.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!mGatt.setCharacteristicNotification(mReadCharacteristic,false)) {
-                    Log.w("writeCharacteristic", "Failed to setCharacteristicNotification");
-                }
-                BluetoothGattDescriptor descriptor = mReadCharacteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
-                descriptor.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
-                mGatt.writeDescriptor(descriptor); //descriptor write operation successfully started?
-
-            }
-        });
-
-
-
-
-
     }
+
 
     @Override
     protected void onResume() {
@@ -218,7 +282,9 @@ public class MainActivity extends AppCompatActivity {
         Log.i(LogFunction, "onPause");
         if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
             scanLeDevice(false);
+            mGatt.disconnect();
         }
+
     }
     @Override
     protected void onDestroy() {
@@ -329,7 +395,6 @@ public class MainActivity extends AppCompatActivity {
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             Log.i(LogFunction, "connectToDevice");
-            Log.i("gattCallback", "STATE_CONNECTED");
             mGatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
             scanLeDevice(false);// will stop after first device detection
         }
@@ -342,7 +407,9 @@ public class MainActivity extends AppCompatActivity {
             Log.i(LogFunction, "onConnectionStateChange");
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
+                    //Toast.makeText(MainActivity.this, "CONNECTED to " + gatt.getDevice().getName().toString(), Toast.LENGTH_SHORT).show();
                     Log.i("gattCallback", "STATE_CONNECTED");
+                    prgLoadBluetooth.setVisibility(View.INVISIBLE);
                     imgBleConnect.setBackgroundResource(R.mipmap.ble_connect);
                     gatt.discoverServices();
                     break;
@@ -391,15 +458,56 @@ public class MainActivity extends AppCompatActivity {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
 //            Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
-            int data = (Byte.toUnsignedInt( characteristic.getValue()[0] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[1] );
-            Log.d("onCharacteristicChanged", "data: " + data);
 
-            x = x+4;
-            series.appendData(new DataPoint(x, (double)data),true, 1000);
+            if(chekRealTime.isChecked()){
+                dataEcg = (Byte.toUnsignedInt( characteristic.getValue()[0] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[1] );
+                //Log.d("onCharacteristicChanged", "data: " + dataEcg);
+                if(dataEcg - pre_dataEcg != 1){
+                    count_lost += (dataEcg - pre_dataEcg - 1);
+                    Log.d("onCharacteristicChanged", "data lost: " + count_lost);
+                }
+                pre_dataEcg = dataEcg;
+                switch (spnFrequency.getSelectedItemPosition()){
+                    case 0:     //125 time per second
+                        x += 8;
+                        break;
+                    case 1:     //250 time per second
+                        x += 4;
+                        break;
+                    case 2:     //500 time per second
+                        x += 2;
+                        break;
+                    case 3:     //1000 time per second
+                        x += 1;
+                        break;
+                    default:
+                        break;
+                }
+                series.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
+            }
+            else{
+                Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
+                DataPoint[] DataPoint_ecg = new DataPoint[characteristic.getValue().length/2];
+                if(characteristic.getValue().length >= 19){
+                    for(int i = 0; i < characteristic.getValue().length; i=i+2){
+                        x += 4;
+                        dataEcg = (Byte.toUnsignedInt( characteristic.getValue()[i] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[i+1]);
+                        if(pre_dataEcg != dataEcg - 1){
+                            count_lost++;
+                            Log.d("onCharacteristicChanged", "value lost: " + count_lost);
+                        }
+                        pre_dataEcg = dataEcg;
+                        Log.d("onCharacteristicChanged", "value: " + dataEcg);
+                        DataPoint v = new DataPoint(x, (double)dataEcg);
+                        DataPoint_ecg[i/2] = v;
+                        series.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
+                    }
+                    //series.appendData(DataPoint_ecg,true, 1000);   //add data to graph
+                    //series.resetData(DataPoint_ecg);
+                }
 
-//            graph.addSeries(series);
+            }
         }
-
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
@@ -411,7 +519,6 @@ public class MainActivity extends AppCompatActivity {
 //            }
 
         }
-
 
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,

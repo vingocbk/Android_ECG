@@ -8,56 +8,75 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/btnSend"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="50dp"
-        android:alpha="0.4"
-        android:text="@string/Start">
-    </Button>
-    <Button
-        android:layout_below="@+id/btnSend"
-        android:id="@+id/btnOn"
-        android:text="On"
-        android:visibility="invisible"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-    </Button>
-    <Button
-        android:layout_below="@+id/btnOn"
-        android:id="@+id/btnOff"
-        android:text="Off"
-        android:visibility="invisible"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-    </Button>
-
-    <ImageView
-        android:id="@+id/imgBleConnect"
-        android:background="@mipmap/ble_disconnect"
-        android:layout_centerHorizontal="true"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-    </ImageView>
-
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="@mipmap/elcom_logo">
-    </ImageView>
-
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graph"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-    </com.jjoe64.graphview.GraphView>
+        android:layout_height="match_parent" />
+    <RelativeLayout
+        android:gravity="center_horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
+        <Button
+            android:id="@+id/btnSend"
+            android:layout_centerVertical="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="70dp"
+            android:alpha="0.4"
+            android:text="@string/Start" />
+        <TextView
+            android:id="@+id/txtRealTime"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/btnSend"
+            android:gravity="center"
+            android:text="Real time" />
 
+        <CheckBox
+            android:id="@+id/chekRealTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@+id/txtRealTime" />
 
+        <ImageView
+            android:id="@+id/imgBleConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:background="@mipmap/ble_disconnect" />
+
+        <TextView
+            android:id="@+id/txtFrequency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="50dp"
+            android:layout_toEndOf="@+id/imgBleConnect"
+            android:text="@string/frequency" />
+
+        <Spinner
+            android:id="@+id/spnFrequency"
+            android:layout_toEndOf="@+id/txtFrequency"
+            android:layout_centerVertical="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:layout_centerVertical="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:background="@mipmap/elcom_logo" />
+
+    </RelativeLayout>
+
+    <ProgressBar
+        android:id="@+id/prgLoadBluetooth"
+        android:layout_centerInParent="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
 </RelativeLayout>
