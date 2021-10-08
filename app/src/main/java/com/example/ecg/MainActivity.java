@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.VoiceInteractor;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -29,6 +30,7 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -43,8 +45,18 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
+//import com.google.android.gms.fitness.data.DataPoint;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
@@ -54,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 @TargetApi(21)
 public class MainActivity extends AppCompatActivity {
@@ -66,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
     private List<ScanFilter> filters;
     private BluetoothGatt mGatt;
     String LogFunction = "function";
+    String deviceName = "ElcomEcg";
     private static final int REQUEST_BLUETOOTH_ADMIN_ID = 1;
     private static final int REQUEST_LOCATION_ID = 2;
     private static final int REQUEST_BLUETOOTH_ID = 3;
@@ -78,17 +92,20 @@ public class MainActivity extends AppCompatActivity {
     //graph
     GraphView graph;
     LineGraphSeries<DataPoint> series;
-    double y = 0;
-    double x = 0;
+    LineChart mpLineChart;
+    float y = 0;
+    float x = 0;
     Button btnSend;
     Spinner spnFrequency;
     CheckBox chekRealTime;
     ImageView imgBleConnect;
+    TextView txtBattery;
     ProgressBar prgLoadBluetooth;
     int start_send_data             = 's'
             , stop_send_data        = 't'
             , send_real_time        = 'u'
-            , send_not_real_time    = 'v';
+            , send_not_real_time    = 'v'
+            , read_battery          = 'b';
 
     int[] frequency = {'0','1','2','3'};
     int dataEcg = 0, pre_dataEcg = 0, count_lost = 0;
@@ -105,19 +122,48 @@ public class MainActivity extends AppCompatActivity {
         bleCheck();
         locationCheck();
         initLayout();
+        initMpChart();
         setDataBegin();
 
 
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                for(int i = 0; i < 1000; i++){
-                    x = x+1;
-                    y = x*x;
-                    series.appendData(new DataPoint(x, y),true, 1000);
-                }
+//                for(int i = 0; i < 1000; i++){
+//                    x = x+1;
+//                    y = x*x;
+//                    series.appendData(new DataPoint(x, y),true, 1000);
+//                }
 //                graph.getViewport().scrollToEnd();
 //                graph.addSeries(series);
+
+//                new Thread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        for(int i =0; i < 1000; i++){
+//                            y = Math.sin(x);
+//                            int finalI = i;
+//                            runOnUiThread(new Runnable() {
+//                                @Override
+//                                public void run() {
+////                            addEntry();
+//                                    LineData data = mpLineChart.getData();
+//                                    data.addEntry(new Entry(finalI, (float) Math.random()), 0);
+//                                    //notify chart data data changed
+//                                    mpLineChart.notifyDataSetChanged();
+//                                    mpLineChart.setVisibleXRange(0,100);
+//                                    mpLineChart.moveViewToX(data.getXMax());
+//
+//                                }
+//                            });
+//                            try {
+//                                Thread.sleep(100);
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                    }
+//                }).start();
 
                 if(mGatt == null || mCustomService == null){
                     Log.w("writeCharacteristic", "NOT CONNECT");
@@ -169,6 +215,9 @@ public class MainActivity extends AppCompatActivity {
                 }
                 mGatt.writeCharacteristic(mWriteCharacteristic);
 
+//                mWriteCharacteristic.setValue(read_battery,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+//                mGatt.writeCharacteristic(mWriteCharacteristic);
+
             }
         });
 
@@ -213,11 +262,148 @@ public class MainActivity extends AppCompatActivity {
     private void initLayout() {
         chekRealTime = findViewById(R.id.chekRealTime);
         spnFrequency = findViewById(R.id.spnFrequency);
-        btnSend = findViewById(id.btnSend);
-        graph = (GraphView) findViewById(id.graph);
-        imgBleConnect = findViewById(id.imgBleConnect);
+        btnSend = findViewById(R.id.btnSend);
+        graph = (GraphView) findViewById(R.id.graph);
+        imgBleConnect = findViewById(R.id.imgBleConnect);
+        txtBattery = findViewById(R.id.txtBattery);
         prgLoadBluetooth = findViewById(R.id.prgLoadBluetooth);
+        mpLineChart = findViewById(R.id.mpLineChart);
     }
+
+    private void initMpChart() {
+        List<Entry> lineEntries = getDataSet();
+//        LineDataSet lineDataSet = new LineDataSet(lineEntries, "ECG");
+        LineDataSet lineDataSet = new LineDataSet(null, "ECG");
+        lineDataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
+        lineDataSet.setLineWidth(2);
+        lineDataSet.setDrawValues(false);
+        lineDataSet.setColor(Color.CYAN);
+        lineDataSet.setCircleRadius(6);
+        lineDataSet.setCircleHoleRadius(3);
+        lineDataSet.setDrawCircles(false);
+        lineDataSet.setDrawHighlightIndicators(true);
+        lineDataSet.setHighlightEnabled(true);
+        lineDataSet.setHighLightColor(Color.CYAN);
+        lineDataSet.setValueTextSize(12);
+        lineDataSet.setValueTextColor(Color.DKGRAY);
+        lineDataSet.setMode(LineDataSet.Mode.STEPPED);
+
+        LineData lineData = new LineData(lineDataSet);
+        mpLineChart.getDescription().setTextSize(12);
+        mpLineChart.getDescription().setEnabled(false);
+        mpLineChart.animateY(1000);
+        mpLineChart.setData(lineData);
+//        mpLineChart.data
+//        mpLineChart.add
+
+        // Setup X Axis
+        XAxis xAxis = mpLineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.TOP);
+        xAxis.setGranularityEnabled(true);
+        xAxis.setGranularity(1.0f);
+        xAxis.setXOffset(1f);
+        xAxis.setLabelCount(25);
+        xAxis.setAvoidFirstLastClipping(true);
+//        xAxis.setAxisMinimum(0);
+//        xAxis.setAxisMaximum(24);
+
+        // Setup Y Axis
+        YAxis yAxis = mpLineChart.getAxisLeft();
+//        yAxis.setAxisMinimum(0);
+//        yAxis.setAxisMaximum(40);
+        yAxis.setGranularity(1f);
+
+//        ArrayList<String> yAxisLabel = new ArrayList<>();
+//        yAxisLabel.add(" ");
+//        yAxisLabel.add("Rest");
+//        yAxisLabel.add("Work");
+//        yAxisLabel.add("2-up");
+//
+//        mpLineChart.getAxisLeft().setCenterAxisLabels(true);
+//        mpLineChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
+//            @Override
+//            public String getAxisLabel(float value, AxisBase axis) {
+//                if(value == -1 || value >= yAxisLabel.size()) return "";
+//                return yAxisLabel.get((int) value);
+//            }
+//        });
+
+//        mpLineChart.getAxisRight().setEnabled(false);
+//        mpLineChart.invalidate();
+
+
+
+
+
+    }
+    private List<Entry> getDataSet() {
+        List<Entry> lineEntries = new ArrayList<>();
+//        lineEntries.add(new Entry(0, 1));
+//        lineEntries.add(new Entry(1, 2));
+//        lineEntries.add(new Entry(2, 3));
+//        lineEntries.add(new Entry(3, 1));
+//        lineEntries.add(new Entry(4, 1));
+//        lineEntries.add(new Entry(5, 1));
+//
+//        lineEntries.add(new Entry(6, 2));
+//        lineEntries.add(new Entry(7, 2));
+//        lineEntries.add(new Entry(8, 2));
+//        lineEntries.add(new Entry(9, 2));
+//        lineEntries.add(new Entry(10, 2));
+//
+//        lineEntries.add(new Entry(11, 1));
+//        lineEntries.add(new Entry(12, 1));
+//
+//        lineEntries.add(new Entry(13, 2));
+//        lineEntries.add(new Entry(14, 2));
+//        lineEntries.add(new Entry(15, 2));
+//
+//        lineEntries.add(new Entry(16, 1));
+//        lineEntries.add(new Entry(17, 1));
+//
+//        lineEntries.add(new Entry(18, 2));
+//        lineEntries.add(new Entry(19, 2));
+//        lineEntries.add(new Entry(20, 2));
+//        lineEntries.add(new Entry(21, 2));
+//
+//        lineEntries.add(new Entry(22, 1));
+//        lineEntries.add(new Entry(23, 1));
+//        lineEntries.add(new Entry(24, 1));
+        return lineEntries;
+    }
+
+    //need to create method to add entry to the line chart
+    private void addEntry(){
+        LineData data = mpLineChart.getData();
+        if(data != null){
+//            LineDataSet set = (LineDataSet) data.getDataSetByIndex(0);
+//            if(set == null){
+//                //creation if null
+//                set = createSet();
+//                data.addDataSet(set);
+//            }
+            //add a new random value
+            data.addEntry(new Entry(50, 1), 0);
+            //notify chart data data changed
+            mpLineChart.notifyDataSetChanged();
+            //limit number of visible entry
+            mpLineChart.setVisibleXRange(0,16);
+            //scroll  to the last entry
+            mpLineChart.moveViewToX(data.getXMax()-7);
+        }
+    }
+
+    //method to createSet
+    private LineDataSet createSet(){
+        LineDataSet set = new LineDataSet(null, "SPL Db");
+        set.setDrawCircles(true);
+
+        return set;
+    }
+
+
+
+
 
     private void setDataBegin() {
         List<String> list = new ArrayList<>();
@@ -229,7 +415,7 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, list);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_item);
         spnFrequency.setAdapter(spinnerAdapter);
-        spnFrequency.setSelection(1);
+        spnFrequency.setSelection(0);
         customGraph();
     }
 
@@ -244,8 +430,8 @@ public class MainActivity extends AppCompatActivity {
         graph.getViewport().setScrollableY(true);
 //        graph.getViewport().setMaxXAxisSize(1000);
 
-//        graph.getViewport().setMinY(-2);
-//        graph.getViewport().setMaxY(2);
+        graph.getViewport().setMinY(1000);
+        graph.getViewport().setMaxY(3300);
 
         graph.getGridLabelRenderer().setHorizontalAxisTitle("Time (ms)");
         graph.getGridLabelRenderer().setVerticalAxisTitle("Voltage (mV)");
@@ -354,7 +540,7 @@ public class MainActivity extends AppCompatActivity {
             //Log.i("getName", result.getDevice().getName());
             if(result.getDevice().getName() != null)
             {
-                if(result.getDevice().getName().equals("Chat_1_2") ){
+                if(result.getDevice().getName().equals(deviceName) ){
                     BluetoothDevice btDevice = result.getDevice();
                     connectToDevice(btDevice);
                 }
@@ -458,7 +644,23 @@ public class MainActivity extends AppCompatActivity {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
 //            Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
-
+            if(characteristic.getValue().length == 3){
+                switch (characteristic.getValue()[0]) {
+                    //Battery
+                    case (byte)0xFF:
+                        int dataBattery = (Byte.toUnsignedInt( characteristic.getValue()[1] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[2]);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String battery = String.valueOf(dataBattery) + "mV";
+                                txtBattery.setText(battery);
+                            }
+                        });
+                        break;
+                    default:
+                        break;
+                }
+            }
             if(chekRealTime.isChecked()){
                 dataEcg = (Byte.toUnsignedInt( characteristic.getValue()[0] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[1] );
                 //Log.d("onCharacteristicChanged", "data: " + dataEcg);
@@ -483,27 +685,91 @@ public class MainActivity extends AppCompatActivity {
                     default:
                         break;
                 }
-                series.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        series.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
+
+//                        try {
+//                            series.wait();
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+                    }
+                });
+
+//                LineData data = mpLineChart.getData();
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        data.addEntry(new Entry(x, (float) dataEcg), 0);
+//                        //notify chart data data changed
+//                        mpLineChart.notifyDataSetChanged();
+//                        mpLineChart.setVisibleXRange(0,1000);
+//                        mpLineChart.moveViewToX(data.getXMax());
+//                    }
+//                });
             }
             else{
                 Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
                 DataPoint[] DataPoint_ecg = new DataPoint[characteristic.getValue().length/2];
                 if(characteristic.getValue().length >= 19){
+                    LineData data = mpLineChart.getData();
                     for(int i = 0; i < characteristic.getValue().length; i=i+2){
-                        x += 4;
+                        switch (spnFrequency.getSelectedItemPosition()){
+                            case 0:     //125 time per second
+                                x += 8;
+                                break;
+                            case 1:     //250 time per second
+                                x += 4;
+                                break;
+                            case 2:     //500 time per second
+                                x += 2;
+                                break;
+                            case 3:     //1000 time per second
+                                x += 1;
+                                break;
+                            default:
+                                break;
+                        }
                         dataEcg = (Byte.toUnsignedInt( characteristic.getValue()[i] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[i+1]);
                         if(pre_dataEcg != dataEcg - 1){
                             count_lost++;
-                            Log.d("onCharacteristicChanged", "value lost: " + count_lost);
+//                            Log.d("onCharacteristicChanged", "value lost: " + count_lost);
                         }
                         pre_dataEcg = dataEcg;
                         Log.d("onCharacteristicChanged", "value: " + dataEcg);
+//                        Log.d("onCharacteristicChanged", "value lost: " + count_lost);
                         DataPoint v = new DataPoint(x, (double)dataEcg);
                         DataPoint_ecg[i/2] = v;
-                        series.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
+                        final CountDownLatch latch = new CountDownLatch(1);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.d("onCharacteristicChanged", "value---: " + dataEcg);
+                                series.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
+                                latch.countDown();
+//                                latch.
+//                                try {
+//                                    series.wait(1);
+//                                } catch (InterruptedException e) {
+//                                    e.printStackTrace();
+//                                }
+//                                data.addEntry(new Entry(x, (float) dataEcg), 0);
+//                                //notify chart data data changed
+//                                mpLineChart.notifyDataSetChanged();
+//                                mpLineChart.setVisibleXRange(0,1000);
+//                                mpLineChart.moveViewToX(data.getXMax());
+                            }
+                        });
+                        try {
+                            latch.await();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    //series.appendData(DataPoint_ecg,true, 1000);   //add data to graph
-                    //series.resetData(DataPoint_ecg);
+
                 }
 
             }
@@ -513,18 +779,21 @@ public class MainActivity extends AppCompatActivity {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt,    characteristic, status);
             Log.d("onCharacteristicWrite", "Characteristic " + Arrays.toString(characteristic.getValue()) + " written");
-
-//            if(!mGatt.readCharacteristic(mReadCharacteristic)){
-//                Log.w("readCharacteristic", "Failed to read characteristic");
-//            }
+//                if(characteristic.getValue()[0] == read_battery){
+//                    if(!mGatt.readCharacteristic(mReadCharacteristic)){
+//                        Log.w("readCharacteristic", "Failed to read_battery");
+//                    }
+//                }
 
         }
 
+        @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic
                                                  characteristic, int status) {
-            Log.i("onCharacteristicRead", characteristic.getStringValue(0));
+            Log.i("onCharacteristicRead", Arrays.toString(characteristic.getValue()));
+
         }
     };
 

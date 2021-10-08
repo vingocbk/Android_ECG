@@ -10,8 +10,14 @@
 
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graph"
+        android:visibility="visible"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/mpLineChart"
+        android:visibility="invisible"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
     <RelativeLayout
         android:gravity="center_horizontal"
         android:layout_width="match_parent"
@@ -28,7 +34,7 @@
         <TextView
             android:id="@+id/txtRealTime"
             android:layout_centerVertical="true"
-            android:layout_marginLeft="20dp"
+            android:layout_marginStart="20dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toEndOf="@+id/btnSend"
@@ -41,6 +47,14 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_toEndOf="@+id/txtRealTime" />
+
+        <TextView
+            android:id="@+id/txtBattery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@+id/chekRealTime"
+            android:text="3000mV" />
 
         <ImageView
             android:id="@+id/imgBleConnect"
@@ -72,6 +86,7 @@
             android:layout_alignParentEnd="true"
             android:background="@mipmap/elcom_logo" />
 
+
     </RelativeLayout>
 
     <ProgressBar
@@ -79,4 +94,6 @@
         android:layout_centerInParent="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
+
+
 </RelativeLayout>
