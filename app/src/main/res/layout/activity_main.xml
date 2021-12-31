@@ -8,37 +8,56 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graph"
-        android:visibility="visible"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:weightSum="2"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graphEcg"
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible" />
+
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graphSpo2"
+            android:layout_weight="1"
+            android:visibility="visible"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/mpLineChart"
-        android:visibility="invisible"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:visibility="gone" />
     <RelativeLayout
         android:gravity="center_horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
         <Button
-            android:id="@+id/btnSend"
-            android:layout_centerVertical="true"
+            android:id="@+id/btnSendEcg"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
             android:layout_marginStart="70dp"
             android:alpha="0.4"
             android:text="@string/Start" />
+
         <TextView
             android:id="@+id/txtRealTime"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="20dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@+id/btnSend"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="20dp"
+            android:layout_toEndOf="@+id/btnSendEcg"
             android:gravity="center"
+            android:visibility="invisible"
             android:text="Real time" />
 
         <CheckBox
@@ -46,6 +65,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
+            android:visibility="invisible"
             android:layout_toEndOf="@+id/txtRealTime" />
 
         <TextView
@@ -63,6 +83,16 @@
             android:layout_centerInParent="true"
             android:background="@mipmap/ble_disconnect" />
 
+        <Button
+            android:id="@+id/btnSendSpo2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="50dp"
+            android:layout_toEndOf="@+id/imgBleConnect"
+            android:alpha="0.4"
+            android:text="@string/Start"
+            android:visibility="visible" />
+
         <TextView
             android:id="@+id/txtFrequency"
             android:layout_width="wrap_content"
@@ -70,20 +100,22 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="50dp"
             android:layout_toEndOf="@+id/imgBleConnect"
-            android:text="@string/frequency" />
+            android:text="@string/frequency"
+            android:visibility="invisible" />
 
         <Spinner
             android:id="@+id/spnFrequency"
-            android:layout_toEndOf="@+id/txtFrequency"
-            android:layout_centerVertical="true"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@+id/txtFrequency"
+            android:visibility="invisible" />
 
         <ImageView
-            android:layout_centerVertical="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:background="@mipmap/elcom_logo" />
 
 
