@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">ECG</string>
     <string name="Start">START</string>
+    <string name="Start_ECG">START ECG</string>
+    <string name="Start_SPO2">START SPO2</string>
     <string name="Stop">STOP</string>
+    <string name="Stop_ECG">STOP ECG</string>
+    <string name="Stop_SPO2">STOP SPO2</string>
     <string name="frequency">Frequency</string>
 </resources>

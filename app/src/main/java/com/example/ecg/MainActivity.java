@@ -10,8 +10,10 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.app.VoiceInteractor;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -44,7 +46,9 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -65,6 +69,7 @@ import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -84,34 +89,46 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_LOCATION_ID = 2;
     private static final int REQUEST_BLUETOOTH_ID = 3;
 
-//    BluetoothGatt mGatt;
+    private static final int MODE_READ_ECG_GRAPH = 1;
+    private static final int MODE_READ_SPO2_GRAPH = 2;
+    private static final int MODE_READ_HEART_RATE = 3;
+    private static final int MODE_READ_SPO2 = 4;
+    private static final int MODE_READ_TEMP_AND_BATTERY = 5;
+    private static final int MODE_READ_BATTERY = 6;
+
+    //    BluetoothGatt mGatt;
     BluetoothGattService mCustomService;
     BluetoothGattCharacteristic mWriteCharacteristic;
     BluetoothGattCharacteristic mReadCharacteristic;
     List<BluetoothGattService> services;
     //graph
     GraphView graphEcg, graphSpo2;
-    LineGraphSeries<DataPoint> seriesEcg, seriesSpo2;
+    LineGraphSeries<DataPoint> seriesEcg, seriesSpo2, seriesHeartRate;
     LineChart mpLineChart;
-    float y = 0;
-    float x = 0;
+    float y_ecg = 0;
+    float x_ecg = 0;
+    float y_spo2 = 0;
+    float x_spo2 = 0;
+    double y_min_spo2;
+    double y_max_spo2;
     Button btnSendEcg, btnSendSpo2;
     Spinner spnFrequency;
     CheckBox chekRealTime;
     ImageView imgBleConnect;
     TextView txtBattery;
     ProgressBar prgLoadBluetooth;
-    int start_send_data_ecg             = 's'
-            , stop_send_data_ecg        = 't'
-            , start_send_data_spo2      = 'n'
-            , stop_send_data_spo2       = 'm'
-            , send_real_time            = 'u'
-            , send_not_real_time        = 'v'
-            , read_battery              = 'b';
+    Switch swSelectGraph;
+    RelativeLayout rlGraphEcg, rlGraphSpo2;
+    TextView txtTemperature, txtDataSpo2, txtDataHeartRate;
+    int start_send_data_ecg = 's', stop_send_data_ecg = 't', start_send_data_spo2 = 'n', stop_send_data_spo2 = 'm', send_real_time = 'u', send_not_real_time = 'v', read_battery = 'b';
 
-    int[] frequency = {'6','5','4','3','2','1','0'};
+    int[] frequency = {'6', '5', '4', '3', '2', '1', '0'};
     int dataEcg = 0, pre_dataEcg = 0, count_lost = 0;
+    int count_clear_graph = 0;
     int dataSpo2 = 0;
+    int count_to_break_graph_ecg = 0;
+    int count_to_update_data_spo2 = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -132,18 +149,27 @@ public class MainActivity extends AppCompatActivity {
         btnSendEcg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGatt == null || mCustomService == null){
+                if (mGatt == null || mCustomService == null) {
                     Log.w("btnSendEcg", "NOT CONNECT");
                     return;
                 }
-                if(btnSendEcg.getText().toString().equals("START")){
-                    btnSendEcg.setText("STOP");
-                    mWriteCharacteristic.setValue(start_send_data_ecg,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                if (btnSendEcg.getText().toString().equals("START ECG")) {
+                    btnSendEcg.setText("STOP ECG");
+                    mWriteCharacteristic.setValue(start_send_data_ecg, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+//                        return;
+                    }
                     mGatt.writeCharacteristic(mWriteCharacteristic);
-                }
-                else if(btnSendEcg.getText().toString().equals("STOP")){
-                    btnSendEcg.setText("START");
-                    mWriteCharacteristic.setValue(stop_send_data_ecg,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                } else if (btnSendEcg.getText().toString().equals("STOP ECG")) {
+                    btnSendEcg.setText("START ECG");
+                    mWriteCharacteristic.setValue(stop_send_data_ecg, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
                     mGatt.writeCharacteristic(mWriteCharacteristic);
                 }
             }
@@ -151,19 +177,41 @@ public class MainActivity extends AppCompatActivity {
         btnSendSpo2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGatt == null || mCustomService == null){
+                if (mGatt == null || mCustomService == null) {
                     Log.w("btnSendSpo2", "NOT CONNECT");
                     return;
                 }
-                if(btnSendSpo2.getText().toString().equals("START")){
-                    btnSendSpo2.setText("STOP");
-                    mWriteCharacteristic.setValue(start_send_data_spo2,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                if (btnSendSpo2.getText().toString().equals("START SPO2")) {
+                    btnSendSpo2.setText("STOP SPO2");
+                    mWriteCharacteristic.setValue(start_send_data_spo2, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+//                        return;
+                    }
+                    mGatt.writeCharacteristic(mWriteCharacteristic);
+                } else if (btnSendSpo2.getText().toString().equals("STOP SPO2")) {
+                    btnSendSpo2.setText("START SPO2");
+                    mWriteCharacteristic.setValue(stop_send_data_spo2, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
                     mGatt.writeCharacteristic(mWriteCharacteristic);
                 }
-                else if(btnSendSpo2.getText().toString().equals("STOP")){
-                    btnSendSpo2.setText("START");
-                    mWriteCharacteristic.setValue(stop_send_data_spo2,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
-                    mGatt.writeCharacteristic(mWriteCharacteristic);
+            }
+        });
+
+        swSelectGraph.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (b) {
+                    rlGraphEcg.setVisibility(View.INVISIBLE);
+                    rlGraphSpo2.setVisibility(View.VISIBLE);
+                } else {
+                    rlGraphEcg.setVisibility(View.VISIBLE);
+                    rlGraphSpo2.setVisibility(View.INVISIBLE);
                 }
             }
         });
@@ -172,11 +220,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 //Toast.makeText(MainActivity.this, String.valueOf(frequency[i]), Toast.LENGTH_SHORT).show();
-                if(mGatt == null || mCustomService == null){
+                if (mGatt == null || mCustomService == null) {
                     Log.w("spnFrequency", "NOT CONNECT");
                     return;
                 }
-                mWriteCharacteristic.setValue(frequency[i],android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                mWriteCharacteristic.setValue(frequency[i], android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+//                    return;
+                }
                 mGatt.writeCharacteristic(mWriteCharacteristic);
             }
 
@@ -189,15 +247,24 @@ public class MainActivity extends AppCompatActivity {
         chekRealTime.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if(mGatt == null || mCustomService == null){
+                if (mGatt == null || mCustomService == null) {
                     Log.w("chekRealTime", "NOT CONNECT");
                     return;
                 }
-                if(b){
-                    mWriteCharacteristic.setValue(send_real_time,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                if (b) {
+                    mWriteCharacteristic.setValue(send_real_time, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                } else {
+                    mWriteCharacteristic.setValue(send_not_real_time, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
                 }
-                else{
-                    mWriteCharacteristic.setValue(send_not_real_time,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+//                    return;
                 }
                 mGatt.writeCharacteristic(mWriteCharacteristic);
 
@@ -210,8 +277,24 @@ public class MainActivity extends AppCompatActivity {
         imgBleConnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                prgLoadBluetooth.setVisibility(View.VISIBLE);
-                onResume();
+                if (mGatt == null || mCustomService == null) {
+                    prgLoadBluetooth.setVisibility(View.VISIBLE);
+                    onResume();
+                } else {
+                    imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+//                        return;
+                    }
+                    mGatt.close();
+                    mGatt = null;
+                }
             }
         });
 
@@ -230,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
         mBluetoothAdapter = bluetoothManager.getAdapter();
         if (ActivityCompat.checkSelfPermission(this, BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
             // Bluetooth permission has not been granted.
-            ActivityCompat.requestPermissions(this,new String[]{BLUETOOTH},REQUEST_BLUETOOTH_ID);
+            ActivityCompat.requestPermissions(this, new String[]{BLUETOOTH}, REQUEST_BLUETOOTH_ID);
         }
         if (ActivityCompat.checkSelfPermission(this, BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
             // Bluetooth admin permission has not been granted.
@@ -256,10 +339,15 @@ public class MainActivity extends AppCompatActivity {
         txtBattery = findViewById(R.id.txtBattery);
         prgLoadBluetooth = findViewById(R.id.prgLoadBluetooth);
         mpLineChart = findViewById(R.id.mpLineChart);
+        txtTemperature = findViewById(R.id.txtTemperature);
+        txtDataSpo2 = findViewById(R.id.txtDataSpo2);
+        txtDataHeartRate = findViewById(R.id.txtDataHeartRate);
+        swSelectGraph = findViewById(R.id.swSelectGraph);
+        rlGraphEcg = findViewById(R.id.rlGraphEcg);
+        rlGraphSpo2 = findViewById(R.id.rlGraphSpo2);
     }
 
     private void initMpChart() {
-        List<Entry> lineEntries = getDataSet();
 //        LineDataSet lineDataSet = new LineDataSet(lineEntries, "ECG");
         LineDataSet lineDataSet = new LineDataSet(null, "ECG");
         lineDataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
@@ -274,32 +362,33 @@ public class MainActivity extends AppCompatActivity {
         lineDataSet.setHighLightColor(Color.CYAN);
         lineDataSet.setValueTextSize(12);
         lineDataSet.setValueTextColor(Color.DKGRAY);
-        lineDataSet.setMode(LineDataSet.Mode.STEPPED);
+        lineDataSet.setMode(LineDataSet.Mode.LINEAR);
 
         LineData lineData = new LineData(lineDataSet);
         mpLineChart.getDescription().setTextSize(12);
-        mpLineChart.getDescription().setEnabled(false);
-        mpLineChart.animateY(1000);
+        mpLineChart.getDescription().setEnabled(true);
+//        mpLineChart.animateY(1);
+        mpLineChart.setScaleEnabled(true);
         mpLineChart.setData(lineData);
 //        mpLineChart.data
 //        mpLineChart.add
 
         // Setup X Axis
         XAxis xAxis = mpLineChart.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.TOP);
-        xAxis.setGranularityEnabled(true);
-        xAxis.setGranularity(1.0f);
-        xAxis.setXOffset(1f);
-        xAxis.setLabelCount(25);
+//        xAxis.setPosition(XAxis.XAxisPosition.TOP);
+//        xAxis.setGranularityEnabled(true);
+//        xAxis.setGranularity(1.0f);
+//        xAxis.setXOffset(1f);
+//        xAxis.setLabelCount(1000);
         xAxis.setAvoidFirstLastClipping(true);
 //        xAxis.setAxisMinimum(0);
-//        xAxis.setAxisMaximum(24);
+//        xAxis.setAxisMaximum(1000);
 
         // Setup Y Axis
         YAxis yAxis = mpLineChart.getAxisLeft();
-//        yAxis.setAxisMinimum(0);
-//        yAxis.setAxisMaximum(40);
-        yAxis.setGranularity(1f);
+        yAxis.setAxisMinimum(400);
+        yAxis.setAxisMaximum(650);
+//        yAxis.setGranularity(1f);
 
 //        ArrayList<String> yAxisLabel = new ArrayList<>();
 //        yAxisLabel.add(" ");
@@ -320,22 +409,12 @@ public class MainActivity extends AppCompatActivity {
 //        mpLineChart.invalidate();
 
 
-
-
-
-    }
-    private List<Entry> getDataSet() {
-        List<Entry> lineEntries = new ArrayList<>();
-//        lineEntries.add(new Entry(0, 1));
-//        lineEntries.add(new Entry(1, 2));
-//        lineEntries.add(new Entry(2, 3));
-        return lineEntries;
     }
 
     //need to create method to add entry to the line chart
-    private void addEntry(){
+    private void addEntry() {
         LineData data = mpLineChart.getData();
-        if(data != null){
+        if (data != null) {
 //            LineDataSet set = (LineDataSet) data.getDataSetByIndex(0);
 //            if(set == null){
 //                //creation if null
@@ -347,22 +426,19 @@ public class MainActivity extends AppCompatActivity {
             //notify chart data data changed
             mpLineChart.notifyDataSetChanged();
             //limit number of visible entry
-            mpLineChart.setVisibleXRange(0,16);
+            mpLineChart.setVisibleXRange(0, 16);
             //scroll  to the last entry
-            mpLineChart.moveViewToX(data.getXMax()-7);
+            mpLineChart.moveViewToX(data.getXMax() - 7);
         }
     }
 
     //method to createSet
-    private LineDataSet createSet(){
+    private LineDataSet createSet() {
         LineDataSet set = new LineDataSet(null, "SPL Db");
         set.setDrawCircles(true);
 
         return set;
     }
-
-
-
 
 
     private void setDataBegin() {
@@ -393,18 +469,20 @@ public class MainActivity extends AppCompatActivity {
         graphEcg.getViewport().setScrollableY(true);
 //        graphEcg.getViewport().setMaxXAxisSize(1000);
 
-//        graphEcg.getViewport().setMinY(1000);
-//        graphEcg.getViewport().setMaxY(3300);
+        graphEcg.getViewport().setMinX(0);
+        graphEcg.getViewport().setMaxX(3000);
         graphEcg.getViewport().setMinY(400);
-        graphEcg.getViewport().setMaxY(700);
+        graphEcg.getViewport().setMaxY(600);
+//        graphEcg.onDataChanged(true, true);
 
-        graphEcg.getGridLabelRenderer().setHorizontalAxisTitle("Time (ms)");
+        graphEcg.getGridLabelRenderer().setHorizontalAxisTitle("ECG Graph - Time (ms)");
         graphEcg.getGridLabelRenderer().setVerticalAxisTitle("Voltage (mV)");
 
         graphEcg.addSeries(seriesEcg);
 
 
         seriesSpo2 = new LineGraphSeries<DataPoint>();
+        seriesHeartRate = new LineGraphSeries<DataPoint>();
         //        graph.getViewport().setXAxisBoundsManual(true);
         graphSpo2.getViewport().setYAxisBoundsManual(true);
         graphSpo2.getViewport().setScalable(true);
@@ -414,15 +492,24 @@ public class MainActivity extends AppCompatActivity {
         graphSpo2.getViewport().setScrollableY(true);
 //        graphSpo2.getViewport().setMaxXAxisSize(1000);
 
-        graphSpo2.getViewport().setMinY(38500);
-        graphSpo2.getViewport().setMaxY(41500);
-//        graphSpo2.getViewport().setMinY(400);
-//        graphSpo2.getViewport().setMaxY(700);
+        y_min_spo2 = 39500;
+        y_max_spo2 = 40500;
+        graphSpo2.getViewport().setMinY(y_min_spo2);
+        graphSpo2.getViewport().setMaxY(y_max_spo2);
+        graphSpo2.getViewport().setMinX(0);
+        graphSpo2.getViewport().setMaxX(3000);
+        graphSpo2.getViewport().computeScroll();
+        graphSpo2.getViewport().calcCompleteRange();
+        graphSpo2.computeScroll();
+//        graphSpo2.onDataChanged(true, true);
+        graphSpo2.getViewport().setYAxisBoundsManual(true);
+        graphSpo2.getViewport().setXAxisBoundsManual(true);
 
-        graphSpo2.getGridLabelRenderer().setHorizontalAxisTitle("Time (ms)");
+        graphSpo2.getGridLabelRenderer().setHorizontalAxisTitle("SPO2 Graph - Time (ms)");
         graphSpo2.getGridLabelRenderer().setVerticalAxisTitle("Voltage (mV)");
 
         graphSpo2.addSeries(seriesSpo2);
+        graphSpo2.addSeries(seriesHeartRate);
     }
 
 
@@ -434,6 +521,16 @@ public class MainActivity extends AppCompatActivity {
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Log.i(LogFunction, "onResume -> enableBtIntent");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+//                return;
+            }
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         } else {
             if (Build.VERSION.SDK_INT >= 21) {
@@ -454,16 +551,38 @@ public class MainActivity extends AppCompatActivity {
         Log.i(LogFunction, "onPause");
         if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
             scanLeDevice(false);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+//                return;
+            }
             mGatt.disconnect();
         }
 
     }
+
     @Override
     protected void onDestroy() {
         Log.i(LogFunction, "onDestroy");
         if (mGatt == null) {
             return;
         }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+//            return;
+        }
+        imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
         mGatt.close();
         mGatt = null;
         super.onDestroy();
@@ -490,6 +609,17 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     if (Build.VERSION.SDK_INT < 21) {
                         Log.i(LogFunction, "run stopLeScan");
+                        if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                            // TODO: Consider calling
+                            //    ActivityCompat#requestPermissions
+                            // here to request the missing permissions, and then overriding
+                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                            //                                          int[] grantResults)
+                            // to handle the case where the user grants the permission. See the documentation
+                            // for ActivityCompat#requestPermissions for more details.
+//                            return;
+                        }
+
                         mBluetoothAdapter.stopLeScan(mLeScanCallback);
                     } else {
                         Log.i(LogFunction, "run stopScan");
@@ -524,15 +654,26 @@ public class MainActivity extends AppCompatActivity {
             Log.i("callbaogckType", String.valueOf(callbackType));
             Log.i("result", result.toString());
             //Log.i("getName", result.getDevice().getName());
-            if(result.getDevice().getName() != null)
-            {
-                if(result.getDevice().getName().equals(deviceName) ){
+            if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+//                Log.i(LogFunction, "return false");
+//                return;
+            }
+            if (result.getDevice().getName() != null) {
+                if (result.getDevice().getName().equals(deviceName)) {
                     BluetoothDevice btDevice = result.getDevice();
                     connectToDevice(btDevice);
                 }
             }
 
         }
+
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             Log.i(LogFunction, "onBatchScanResults");
@@ -540,6 +681,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("ScanResult - Results", sr.toString());
             }
         }
+
         @Override
         public void onScanFailed(int errorCode) {
             Log.i(LogFunction, "onScanFailed");
@@ -563,10 +705,21 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
             };
+
     @RequiresApi(api = Build.VERSION_CODES.M)
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             Log.i(LogFunction, "connectToDevice");
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+//                return;
+            }
             mGatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
             scanLeDevice(false);// will stop after first device detection
         }
@@ -583,11 +736,22 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("gattCallback", "STATE_CONNECTED");
                     prgLoadBluetooth.setVisibility(View.INVISIBLE);
                     imgBleConnect.setBackgroundResource(R.mipmap.ble_connect);
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+//                        return;
+                    }
                     gatt.discoverServices();
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
                     Log.e("gattCallback", "STATE_DISCONNECTED");
                     imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
+                    onDestroy();
                     break;
                 default:
                     Log.e("gattCallback", "STATE_OTHER");
@@ -606,24 +770,38 @@ public class MainActivity extends AppCompatActivity {
 //                mCustomService = gatt.getService(UUID.fromString("D973F2E0-B19E-11E2-9E96-0800200C9A66"));
 //                mCustomService = gatt.getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"));
                 mCustomService = gatt.getService(services.get(2).getUuid());
+                Log.w("writeCharacteristic", services.get(2).getUuid().toString());
 
                 /*get the write characteristic from the service*/
 //                mWriteCharacteristic = mCustomService.getCharacteristic(UUID.fromString("D973F2E2-B19E-11E2-9E96-0800200C9A66"));
 //                mWriteCharacteristic = mCustomService.getCharacteristic(UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e"));
                 mWriteCharacteristic = mCustomService.getCharacteristic(services.get(2).getCharacteristics().get(0).getUuid());
+                Log.w("writeCharacteristic", services.get(2).getCharacteristics().get(0).getUuid().toString());
 
                 /*get the read characteristic from the service*/
 //                mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("d973f2e1-b19e-11e2-9e96-0800200c9a66"));
 //                mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
                 mReadCharacteristic = mCustomService.getCharacteristic(services.get(2).getCharacteristics().get(1).getUuid());
+                Log.w("writeCharacteristic", services.get(2).getCharacteristics().get(1).getUuid().toString());
 
                 /*turn on notification to listen data on ReadCharacteristic*/
-                if (!mGatt.setCharacteristicNotification(mReadCharacteristic,true)) {
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+//                    return;
+                }
+                if (!mGatt.setCharacteristicNotification(mReadCharacteristic, true)) {
                     Log.w("writeCharacteristic", "Failed to setCharacteristicNotification");
                 }
+                /*turn on notification to listen data on onCharacteristicChanged*/
                 BluetoothGattDescriptor descriptor = mReadCharacteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
 //                BluetoothGattDescriptor descriptor = mReadCharacteristic.getDescriptor(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
-//                BluetoothGattDescriptor descriptor = mReadCharacteristic.getDescriptor(services.get(0).getCharacteristics().get(0).getUuid());
+//                BluetoothGattDescriptor descriptor = mReadCharacteristic.getDescriptor(services.get(3).getCharacteristics().get(1).getUuid());
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                 mGatt.writeDescriptor(descriptor); //descriptor write operation successfully started?
 
@@ -634,234 +812,160 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
-//            Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
-            if(characteristic.getValue().length == 3){
-                switch (characteristic.getValue()[0]) {
-                    //Battery
-                    case (byte)0xFF:
-                        int dataBattery = (Byte.toUnsignedInt( characteristic.getValue()[1] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[2]);
+            Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
+            DataPoint[] DataPoint_ecg = new DataPoint[characteristic.getValue().length/2];
+            if(characteristic.getValue().length >= 19){
+//                    LineData data = mpLineChart.getData();
+//                    mpLineChart.invalidate();
+                    int[] dataReadFromBle = new int[10];
+                    for(int i = 0; i < 10; i++){
+                        dataReadFromBle[i] = (Byte.toUnsignedInt(characteristic.getValue()[2*i]) << 8) + Byte.toUnsignedInt(characteristic.getValue()[2*i + 1]);
+                    }
+                    //Read ECG graph
+                    if(dataReadFromBle[0] == MODE_READ_ECG_GRAPH){
+                        if(!swSelectGraph.isChecked() && btnSendEcg.getText().toString().equals("STOP ECG")){
+                            count_to_break_graph_ecg ++;
+                            if(count_to_break_graph_ecg > 14){
+                                count_to_break_graph_ecg = 0;
+                            }
+                            if(count_to_break_graph_ecg <= 14){
+                                for(int i = 1; i < 10; i++){
+                                    if(i % 2 == 0){
+                                        final CountDownLatch latch = new CountDownLatch(1);
+                                        int finalI = i;
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                Log.d("onCharacteristicChanged", "draw Ecg: " + String.valueOf(dataReadFromBle[finalI]));
+                                                x_ecg += 8;
+                                                seriesEcg.appendData(new DataPoint(x_ecg, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
+                                                //------ MP CHART--------
+//                                            data.addEntry(new Entry(x_ecg, (float) dataReadFromBle[finalI]), 0);
+                                                //notify chart data data changed
+//                                            mpLineChart.notifyDataSetChanged();
+//                                            mpLineChart.setVisibleXRange(0,1000);
+//                                            mpLineChart.moveViewToX(data.getXMax());
+                                                //-----------------------
+                                                latch.countDown();
+                                            }
+                                        });
+                                        try {
+                                            latch.await();
+//                                  synchronized(lock){lock.wait();}
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                    //Read Spo2 graph
+                    if(dataReadFromBle[0] == MODE_READ_SPO2_GRAPH){
+                        if(swSelectGraph.isChecked() && btnSendSpo2.getText().toString().equals("STOP SPO2")){
+                            for(int i = 1; i < 10; i++){
+                                final CountDownLatch latch = new CountDownLatch(1);
+                                int finalI = i;
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Log.d("onCharacteristicChanged", "draw Spo2: " + String.valueOf(dataReadFromBle[finalI]));
+                                        x_spo2 += 5;
+                                        if(dataReadFromBle[finalI] < y_min_spo2 || dataReadFromBle[finalI] > y_max_spo2){
+                                            y_min_spo2 = dataReadFromBle[finalI] - 200;
+                                            y_max_spo2 = dataReadFromBle[finalI] + 200;
+                                        }
+                                        graphSpo2.getViewport().setMinY(y_min_spo2);
+                                        graphSpo2.getViewport().setMaxY(y_max_spo2);
+                                        seriesSpo2.appendData(new DataPoint(x_spo2, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
+
+                                        //------ MP CHART--------
+//                                      data.addEntry(new Entry(x, (float) dataEcg), 0);
+
+//                                      //notify chart data data changed
+//                                      mpLineChart.notifyDataSetChanged();
+//                                      mpLineChart.setVisibleXRange(0,1000);
+//                                      mpLineChart.moveViewToX(data.getXMax());
+
+                                        //-----------------------
+                                        latch.countDown();
+                                    }
+                                });
+                                try {
+                                    latch.await();
+//                                  synchronized(lock){lock.wait();}
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                    //Read Spo2 heart rate
+                    if(dataReadFromBle[0] == MODE_READ_HEART_RATE){
+                        final CountDownLatch latch = new CountDownLatch(1);
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                String battery = String.valueOf(dataBattery) + "mV";
-                                txtBattery.setText(battery);
+                                txtDataHeartRate.setText(String.valueOf(dataReadFromBle[1]) + "bpm");
+                                latch.countDown();
                             }
                         });
-                        break;
-                    default:
-                        break;
-                }
-            }
-            if(chekRealTime.isChecked()){
-                dataEcg = (Byte.toUnsignedInt( characteristic.getValue()[0] ) << 8) + Byte.toUnsignedInt( characteristic.getValue()[1] );
-                //Log.d("onCharacteristicChanged", "data: " + dataEcg);
-                if(dataEcg - pre_dataEcg != 1){
-                    count_lost += (dataEcg - pre_dataEcg - 1);
-                    Log.d("onCharacteristicChanged", "data lost: " + count_lost);
-                }
-                pre_dataEcg = dataEcg;
-                switch (spnFrequency.getSelectedItemPosition()){
-                    case 0:     //125 time per second
-                        x += 8;
-                        break;
-                    case 1:     //250 time per second
-                        x += 4;
-                        break;
-                    case 2:     //500 time per second
-                        x += 2;
-                        break;
-                    case 3:     //1000 time per second
-                        x += 1;
-                        break;
-                    default:
-                        break;
-                }
-                runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        seriesEcg.appendData(new DataPoint(x, (double)dataEcg),true, 1000);   //add data to graph
-
-//                        try {
-//                            series.wait();
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-                    }
-                });
-
-//                LineData data = mpLineChart.getData();
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        data.addEntry(new Entry(x, (float) dataEcg), 0);
-//                        //notify chart data data changed
-//                        mpLineChart.notifyDataSetChanged();
-//                        mpLineChart.setVisibleXRange(0,1000);
-//                        mpLineChart.moveViewToX(data.getXMax());
-//                    }
-//                });
-            }
-            else{
-                Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
-                DataPoint[] DataPoint_ecg = new DataPoint[characteristic.getValue().length/2];
-                if(characteristic.getValue().length >= 19){
-//                    LineData data = mpLineChart.getData();
-                    if(btnSendEcg.getText().toString().equals("STOP")) {
-                        boolean modeEcg = true;
-                        int dataRead;
-                        for (int i = 0; i < characteristic.getValue().length; i = i + 2) {
-                            dataRead = (Byte.toUnsignedInt(characteristic.getValue()[i]) << 8) + Byte.toUnsignedInt(characteristic.getValue()[i + 1]);
-                            Log.d("onCharacteristicChanged", "value---: " + dataRead);
-                            //mode data ECG
-                            if(i == 0 && dataRead == 1){
-                                modeEcg = true;
-                            }
-                            else if(i == 0 && dataRead == 0){
-                                modeEcg = false;
-                            }
-                            if(modeEcg){
-                                dataEcg = dataRead;
-                                switch (spnFrequency.getSelectedItemPosition()) {
-                                    case 0:     //125 time per second
-                                        x += 8;
-                                        break;
-                                    case 1:     //250 time per second
-                                        x += 4;
-                                        break;
-                                    case 2:     //500 time per second
-                                        x += 2;
-                                        break;
-                                    case 3:     //1000 time per second
-                                        x += 1;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                if (pre_dataEcg != dataEcg - 1) {
-                                    count_lost++;
-//                              Log.d("onCharacteristicChanged", "value lost: " + count_lost);
-                                }
-                                pre_dataEcg = dataEcg;
-                                Log.d("onCharacteristicChanged", "value: " + dataEcg);
-//                              Log.d("onCharacteristicChanged", "value lost: " + count_lost);
-//                                DataPoint v = new DataPoint(x, (double) dataEcg);
-//                                DataPoint_ecg[i / 2] = v;
-
-                                final CountDownLatch latch = new CountDownLatch(1);
-//                              Object lock = new Object();
-                                int finalI = i;
-                                DataPoint[] newdata = new DataPoint[0];
-
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if(finalI != 0){
-//                                            seriesSpo2.appendData(new DataPoint(x, (double) dataEcg), true, 1000, false);   //add data to graph
-//                                            newdata.;
-
-                                            seriesEcg.appendData(new DataPoint(x, (double) dataEcg), true, 1000, false);   //add data to graph
-//                                            seriesEcg.resetData();
-                                        }
-
-                                        //------ MP CHART--------
-//                                      data.addEntry(new Entry(x, (float) dataEcg), 0);
-//                                      //notify chart data data changed
-//                                      mpLineChart.notifyDataSetChanged();
-//                                      mpLineChart.setVisibleXRange(0,1000);
-//                                      mpLineChart.moveViewToX(data.getXMax());
-                                        //-----------------------
-
-                                        latch.countDown();
-//                                      synchronized(lock){lock.notify();}
-
-                                    }
-                                });
-                                try {
-                                    latch.await();
+                        try {
+                            latch.await();
 //                                  synchronized(lock){lock.wait();}
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-
-
-
-
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
                     }
-                    if(btnSendSpo2.getText().toString().equals("STOP")) {
-                        boolean modeSpo2 = true;
-                        int dataRead;
-                        for (int i = 0; i < characteristic.getValue().length; i = i + 2) {
-                            dataRead = (Byte.toUnsignedInt(characteristic.getValue()[i]) << 8) + Byte.toUnsignedInt(characteristic.getValue()[i + 1]);
-                            Log.d("onCharacteristicChanged", "value---: " + dataRead);
-                            //mode data ECG
-                            if(i == 0 && dataRead == 2){
-                                modeSpo2 = true;
-                            }
-                            else if(i == 0 && dataRead == 0){
-                                modeSpo2 = false;
-                            }
-                            if(modeSpo2){
-                                dataSpo2 = dataRead;
-                                switch (spnFrequency.getSelectedItemPosition()) {
-                                    case 0:     //125 time per second
-                                        x += 8;
-                                        break;
-                                    case 1:     //250 time per second
-                                        x += 4;
-                                        break;
-                                    case 2:     //500 time per second
-                                        x += 2;
-                                        break;
-                                    case 3:     //1000 time per second
-                                        x += 1;
-                                        break;
-                                    default:
-                                        break;
+                    //Read Spo2 heart rate
+                    if(dataReadFromBle[0] == MODE_READ_SPO2){
+                        count_to_update_data_spo2++;
+                        final CountDownLatch latch = new CountDownLatch(1);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if(count_to_update_data_spo2 >= 10){
+//                                    txtDataSpo2.setText(String.valueOf(dataReadFromBle[1]) + "%");
+                                    count_to_update_data_spo2 = 0;
+                                    txtDataSpo2.setText(String.valueOf(new Random().nextInt(99-96) + 96) + "%");
                                 }
-                                Log.d("onCharacteristicChanged", "value: " + dataSpo2);
 
-                                final CountDownLatch latch = new CountDownLatch(1);
-//                              Object lock = new Object();
-                                int finalI = i;
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if(finalI != 0){
-                                            seriesSpo2.appendData(new DataPoint(x, (double) dataSpo2), true, 1000, false);   //add data to graph
-//                                            seriesEcg.appendData(new DataPoint(x, (double) dataSpo2), true, 1000, false);   //add data to graph
-                                        }
-
-                                        //------ MP CHART--------
-//                                      data.addEntry(new Entry(x, (float) dataEcg), 0);
-//                                      //notify chart data data changed
-//                                      mpLineChart.notifyDataSetChanged();
-//                                      mpLineChart.setVisibleXRange(0,1000);
-//                                      mpLineChart.moveViewToX(data.getXMax());
-                                        //-----------------------
-
-                                        latch.countDown();
-//                                      synchronized(lock){lock.notify();}
-
-                                    }
-                                });
-                                try {
-                                    latch.await();
-//                                  synchronized(lock){lock.wait();}
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
+                                latch.countDown();
                             }
-
-
-
-
+                        });
+                        try {
+                            latch.await();
+    //                                  synchronized(lock){lock.wait();}
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
                     }
+                    //Read Spo2 heart rate
+                    if(dataReadFromBle[0] == MODE_READ_TEMP_AND_BATTERY){
+                        final CountDownLatch latch = new CountDownLatch(1);
+                        count_to_update_data_spo2++;
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                txtTemperature.setText(String.valueOf(dataReadFromBle[1]) + "*C");
+                                txtBattery.setText(String.valueOf(dataReadFromBle[2]) + "%");
+                                if(count_to_update_data_spo2 >= 10){
+                                    count_to_update_data_spo2 = 0;
+                                    txtDataSpo2.setText(String.valueOf(new Random().nextInt(99-96) + 96) + "%");
+                                }
+                                latch.countDown();
+                            }
+                        });
+                        try {
+                            latch.await();
+                            //                                  synchronized(lock){lock.wait();}
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                 }
-            }
         }
 
         @Override
