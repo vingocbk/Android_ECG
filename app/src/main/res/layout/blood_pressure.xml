@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:weightSum="2"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_weight="1"
+            android:weightSum="2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <LinearLayout
+                android:layout_weight="1"
+                android:layout_margin="10dp"
+                android:background="@drawable/round_rect_shape"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <Button
+                        android:id="@+id/btnSendBloodPressure"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:alpha="0.4"
+                        android:text="@string/Start" />
+
+                    <pl.droidsonroids.gif.GifImageView
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_centerHorizontal="true"
+                        android:background="@mipmap/heart_rate_gif" />
+
+                    <TextView
+                        android:id="@+id/txtBPTHeartRate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="90dp"
+                        android:text="--- bpm"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+
+            </LinearLayout>
+            <LinearLayout
+                android:layout_weight="1"
+                android:layout_margin="10dp"
+                android:background="@drawable/round_rect_shape"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <pl.droidsonroids.gif.GifImageView
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_centerHorizontal="true"
+                        android:background="@mipmap/spo2" />
+
+                    <TextView
+                        android:id="@+id/txtBPTSpo2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="90dp"
+                        android:text="--- %"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_weight="1"
+            android:weightSum="2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <LinearLayout
+                android:layout_weight="1"
+                android:layout_margin="10dp"
+                android:background="@drawable/round_rect_shape"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <pl.droidsonroids.gif.GifImageView
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_centerHorizontal="true"
+                        android:background="@mipmap/blood_pressure" />
+
+                    <TextView
+                        android:id="@+id/txtBPTLowBloodPressure"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="90dp"
+                        android:text="---"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+
+            </LinearLayout>
+            <LinearLayout
+                android:layout_weight="1"
+                android:layout_margin="10dp"
+                android:background="@drawable/round_rect_shape"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <pl.droidsonroids.gif.GifImageView
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_centerHorizontal="true"
+                        android:background="@mipmap/blood_pressure" />
+
+                    <TextView
+                        android:id="@+id/txtBPTHighBloodPressure"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="90dp"
+                        android:text="---"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+    <RelativeLayout
+        android:id="@+id/rlBPTLoadProgressMax32664"
+        android:visibility="invisible"
+        android:background="#B4251B1B"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="300dp"
+            android:layout_height="250dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/round_rect_shape">
+
+            <TextView
+                android:id="@+id/txtBPTLoadProgressMax32664"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Loading 0%"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/prbBPTLoadProgressMax32664"
+                style="@style/CircularDeterminateProgressBar"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_centerInParent="true"
+                android:progress="0" />
+
+            <Button
+                android:id="@+id/btnBPTCancelLoadProgressMax32664"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:alpha="0.4"
+                android:text="Cancel" />
+
+            <pl.droidsonroids.gif.GifImageView
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_below="@+id/txtBPTLoadProgressMax32664"
+                android:layout_centerHorizontal="true"
+                android:background="@mipmap/loading_gif" />
+
+        </RelativeLayout>
+    </RelativeLayout>
+
+</RelativeLayout>

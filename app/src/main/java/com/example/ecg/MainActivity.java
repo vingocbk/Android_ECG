@@ -45,6 +45,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
@@ -71,6 +72,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
 
 @TargetApi(21)
@@ -85,14 +87,15 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGatt mGatt;
     String LogFunction = "function";
     String deviceName = "ElcomEcg";
+//    String deviceName = "UART Service";
     private static final int REQUEST_BLUETOOTH_ADMIN_ID = 1;
     private static final int REQUEST_LOCATION_ID = 2;
     private static final int REQUEST_BLUETOOTH_ID = 3;
 
     private static final int MODE_READ_ECG_GRAPH = 1;
     private static final int MODE_READ_SPO2_GRAPH = 2;
-    private static final int MODE_READ_HEART_RATE = 3;
-    private static final int MODE_READ_SPO2 = 4;
+    private static final int MODE_READ_BLOOD_PRESSURE = 3;
+    private static final int MODE_READ_PROGRESS_CALIBRATION = 4;
     private static final int MODE_READ_TEMP_AND_BATTERY = 5;
     private static final int MODE_READ_BATTERY = 6;
 
@@ -105,29 +108,30 @@ public class MainActivity extends AppCompatActivity {
     GraphView graphEcg, graphSpo2;
     LineGraphSeries<DataPoint> seriesEcg, seriesSpo2, seriesHeartRate;
     LineChart mpLineChart;
-    float y_ecg = 0;
     float x_ecg = 0;
-    float y_spo2 = 0;
     float x_spo2 = 0;
-    double y_min_spo2;
-    double y_max_spo2;
-    Button btnSendEcg, btnSendSpo2;
-    Spinner spnFrequency;
-    CheckBox chekRealTime;
+    double y_min_spo2, y_min_ecg;
+    double y_max_spo2, y_max_ecg;
+    Button btnSendEcg, btnSendSpo2, btnSendBloodPressure, btnBPTCancelLoadProgressMax32664;
     ImageView imgBleConnect;
-    TextView txtBattery;
-    ProgressBar prgLoadBluetooth;
-    Switch swSelectGraph;
-    RelativeLayout rlGraphEcg, rlGraphSpo2;
-    TextView txtTemperature, txtDataSpo2, txtDataHeartRate;
-    int start_send_data_ecg = 's', stop_send_data_ecg = 't', start_send_data_spo2 = 'n', stop_send_data_spo2 = 'm', send_real_time = 'u', send_not_real_time = 'v', read_battery = 'b';
+    TextView txtBattery, txtBPTLoadProgressMax32664;
+    ProgressBar prgLoadBluetooth, prbBPTLoadProgressMax32664;
+    TextView txtECGDataHeartRate, txtBPTHeartRate, txtBPTSpo2, txtBPTLowBloodPressure, txtBPTHighBloodPressure;
+    RelativeLayout rlLogoEcgGraph, rlLogoSpo2Graph, rlLogoBloodPressure;
+    RelativeLayout rlBPTLoadProgressMax32664;
+    ImageView gif_logo_back_menu, gifLogoCurrentMenu;
+    View layoutMainMenu, layoutEcgGraph, layoutSpo2Graph, layoutBloodPressure;
+    int start_send_data_ecg = 's', stop_send_data_ecg = 't', start_send_data_spo2 = 'n', stop_send_data_spo2 = 'm'
+            , start_send_blood_pressure = 'u', stop_send_blood_pressure = 'k', read_battery = 'b';
 
     int[] frequency = {'6', '5', '4', '3', '2', '1', '0'};
     int dataEcg = 0, pre_dataEcg = 0, count_lost = 0;
     int count_clear_graph = 0;
     int dataSpo2 = 0;
-    int count_to_break_graph_ecg = 0;
-    int count_to_update_data_spo2 = 0;
+    int bufferMinMaxXGraph = 100;
+    int[] dataMinMaxGraphIrValue = new int[bufferMinMaxXGraph];
+    int[] dataMinMaxGraphEcgValue = new int[bufferMinMaxXGraph];
+    int countDataMinMaxGraphIrValue = 0, countDataMinMaxGraphEcg = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,12 +149,12 @@ public class MainActivity extends AppCompatActivity {
         initMpChart();
         setDataBegin();
 
-
         btnSendEcg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mGatt == null || mCustomService == null) {
                     Log.w("btnSendEcg", "NOT CONNECT");
+                    Toast.makeText(MainActivity.this, "Connect to Device first!", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 if (btnSendEcg.getText().toString().equals("START ECG")) {
@@ -179,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 if (mGatt == null || mCustomService == null) {
                     Log.w("btnSendSpo2", "NOT CONNECT");
+                    Toast.makeText(MainActivity.this, "Connect to Device first!", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 if (btnSendSpo2.getText().toString().equals("START SPO2")) {
@@ -203,74 +208,88 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        swSelectGraph.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        btnSendBloodPressure.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if (b) {
-                    rlGraphEcg.setVisibility(View.INVISIBLE);
-                    rlGraphSpo2.setVisibility(View.VISIBLE);
-                } else {
-                    rlGraphEcg.setVisibility(View.VISIBLE);
-                    rlGraphSpo2.setVisibility(View.INVISIBLE);
+            public void onClick(View view) {
+                if (mGatt == null || mCustomService == null) {
+                    Log.w("btnSendSpo2", "NOT CONNECT");
+                    Toast.makeText(MainActivity.this, "Connect to Device first!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (btnSendBloodPressure.getText().toString().equals("START")) {
+                    btnSendBloodPressure.setText("STOP");
+                    rlBPTLoadProgressMax32664.setVisibility(View.VISIBLE);
+                    btnSendBloodPressure.setClickable(false);
+                    txtBPTLoadProgressMax32664.setText("Loading 0%");
+                    prbBPTLoadProgressMax32664.setProgress(0);
+                    mWriteCharacteristic.setValue(start_send_blood_pressure, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    }
+                    mGatt.writeCharacteristic(mWriteCharacteristic);
+                } else if (btnSendBloodPressure.getText().toString().equals("STOP")) {
+                    btnSendBloodPressure.setText("START");
+                    mWriteCharacteristic.setValue(stop_send_blood_pressure, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                    mGatt.writeCharacteristic(mWriteCharacteristic);
                 }
             }
         });
 
-        spnFrequency.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        btnBPTCancelLoadProgressMax32664.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                //Toast.makeText(MainActivity.this, String.valueOf(frequency[i]), Toast.LENGTH_SHORT).show();
-                if (mGatt == null || mCustomService == null) {
-                    Log.w("spnFrequency", "NOT CONNECT");
-                    return;
-                }
-                mWriteCharacteristic.setValue(frequency[i], android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-//                    return;
-                }
-                mGatt.writeCharacteristic(mWriteCharacteristic);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-
+            public void onClick(View view) {
+                btnSendBloodPressure.setClickable(true);
+                rlBPTLoadProgressMax32664.setVisibility(View.INVISIBLE);
             }
         });
 
-        chekRealTime.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        gif_logo_back_menu.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if (mGatt == null || mCustomService == null) {
-                    Log.w("chekRealTime", "NOT CONNECT");
-                    return;
+            public void onClick(View view) {
+                layoutEcgGraph.setVisibility(View.INVISIBLE);
+                layoutSpo2Graph.setVisibility(View.INVISIBLE);
+                layoutBloodPressure.setVisibility(View.INVISIBLE);
+                layoutMainMenu.setVisibility(View.VISIBLE);
+                gif_logo_back_menu.setBackgroundResource(mipmap.home);
+                gifLogoCurrentMenu.setBackgroundResource(mipmap.heart_health);
+                if (btnSendEcg.getText().toString().equals("STOP ECG")) {
+                    btnSendEcg.callOnClick();
                 }
-                if (b) {
-                    mWriteCharacteristic.setValue(send_real_time, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-                } else {
-                    mWriteCharacteristic.setValue(send_not_real_time, android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                if (btnSendSpo2.getText().toString().equals("STOP SPO2")) {
+                    btnSendSpo2.callOnClick();
                 }
-                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-//                    return;
+                if (btnSendBloodPressure.getText().toString().equals("STOP")) {
+                    btnSendBloodPressure.callOnClick();
                 }
-                mGatt.writeCharacteristic(mWriteCharacteristic);
+            }
+        });
 
-//                mWriteCharacteristic.setValue(read_battery,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
-//                mGatt.writeCharacteristic(mWriteCharacteristic);
+        rlLogoEcgGraph.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                layoutMainMenu.setVisibility(View.INVISIBLE);
+                layoutEcgGraph.setVisibility(View.VISIBLE);
+                gifLogoCurrentMenu.setBackgroundResource(mipmap.ecg_system_gif);
+                gif_logo_back_menu.setBackgroundResource(mipmap.home_gif);
+            }
+        });
 
+        rlLogoSpo2Graph.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                layoutMainMenu.setVisibility(View.INVISIBLE);
+                layoutSpo2Graph.setVisibility(View.VISIBLE);
+                gifLogoCurrentMenu.setBackgroundResource(mipmap.spo2);
+                gif_logo_back_menu.setBackgroundResource(mipmap.home_gif);
+            }
+        });
+
+        rlLogoBloodPressure.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                layoutMainMenu.setVisibility(View.INVISIBLE);
+                layoutBloodPressure.setVisibility(View.VISIBLE);
+                gifLogoCurrentMenu.setBackgroundResource(mipmap.blood_pressure);
+                gif_logo_back_menu.setBackgroundResource(mipmap.home_gif);
             }
         });
 
@@ -279,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 if (mGatt == null || mCustomService == null) {
                     prgLoadBluetooth.setVisibility(View.VISIBLE);
-                    onResume();
+                    scanDeviceBleToConnect();
                 } else {
                     imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
                     if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -292,6 +311,7 @@ public class MainActivity extends AppCompatActivity {
                         // for ActivityCompat#requestPermissions for more details.
 //                        return;
                     }
+                    mGatt.disconnect();
                     mGatt.close();
                     mGatt = null;
                 }
@@ -329,22 +349,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initLayout() {
-        chekRealTime = findViewById(R.id.chekRealTime);
-        spnFrequency = findViewById(R.id.spnFrequency);
         btnSendEcg = findViewById(R.id.btnSendEcg);
         btnSendSpo2 = findViewById(R.id.btnSendSpo2);
+        btnSendBloodPressure = findViewById(R.id.btnSendBloodPressure);
+        btnBPTCancelLoadProgressMax32664 = findViewById(R.id.btnBPTCancelLoadProgressMax32664);
+
+        txtBPTLoadProgressMax32664 = findViewById(R.id.txtBPTLoadProgressMax32664);
+        txtBPTHeartRate = findViewById(R.id.txtBPTHeartRate);
+        txtBPTSpo2 = findViewById(R.id.txtBPTSpo2);
+        txtBPTLowBloodPressure = findViewById(R.id.txtBPTLowBloodPressure);
+        txtBPTHighBloodPressure = findViewById(R.id.txtBPTHighBloodPressure);
+
         graphEcg = (GraphView) findViewById(R.id.graphEcg);
         graphSpo2 = (GraphView) findViewById(R.id.graphSpo2);
         imgBleConnect = findViewById(R.id.imgBleConnect);
         txtBattery = findViewById(R.id.txtBattery);
         prgLoadBluetooth = findViewById(R.id.prgLoadBluetooth);
+        prbBPTLoadProgressMax32664 = findViewById(R.id.prbBPTLoadProgressMax32664);
         mpLineChart = findViewById(R.id.mpLineChart);
-        txtTemperature = findViewById(R.id.txtTemperature);
-        txtDataSpo2 = findViewById(R.id.txtDataSpo2);
-        txtDataHeartRate = findViewById(R.id.txtDataHeartRate);
-        swSelectGraph = findViewById(R.id.swSelectGraph);
-        rlGraphEcg = findViewById(R.id.rlGraphEcg);
-        rlGraphSpo2 = findViewById(R.id.rlGraphSpo2);
+//        txtTemperature = findViewById(R.id.txtTemperature);
+//        txtDataSpo2 = findViewById(R.id.txtDataSpo2);
+        txtECGDataHeartRate = findViewById(R.id.txtECGDataHeartRate);
+
+        gif_logo_back_menu = findViewById(R.id.gif_logo_back_menu);
+        gifLogoCurrentMenu = findViewById(R.id.gifLogoCurrentMenu);
+
+
+        layoutMainMenu = findViewById(R.id.layoutMainMenu);
+        layoutEcgGraph = findViewById(R.id.layoutEcgGraph);
+        layoutSpo2Graph = findViewById(R.id.layoutSpo2Graph);
+        layoutBloodPressure = findViewById(R.id.layoutBloodPressure);
+
+        rlLogoEcgGraph = findViewById(R.id.rlLogoEcgGraph);
+        rlLogoSpo2Graph = findViewById(id.rlLogoSpo2Graph);
+        rlLogoBloodPressure = findViewById(R.id.rlLogoBloodPressure);
+
+        rlBPTLoadProgressMax32664 = findViewById(R.id.rlBPTLoadProgressMax32664);
+
     }
 
     private void initMpChart() {
@@ -442,19 +483,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setDataBegin() {
-        List<String> list = new ArrayList<>();
-        list.add("25Hz");
-        list.add("50Hz");
-        list.add("100Hz");
-        list.add("125Hz");
-        list.add("250Hz");
-        list.add("500Hz");
-        list.add("1KHz");
-        //ArrayAdapter spinAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, list);
-        ArrayAdapter spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, list);
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_item);
-        spnFrequency.setAdapter(spinnerAdapter);
-        spnFrequency.setSelection(3);
         customGraph();
     }
 
@@ -512,12 +540,7 @@ public class MainActivity extends AppCompatActivity {
         graphSpo2.addSeries(seriesHeartRate);
     }
 
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.i(LogFunction, "onResume");
-//        imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
+    protected void scanDeviceBleToConnect(){
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Log.i(LogFunction, "onResume -> enableBtIntent");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -543,6 +566,14 @@ public class MainActivity extends AppCompatActivity {
             }
             scanLeDevice(true);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i(LogFunction, "onResume");
+//        imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
+
     }
 
     @Override
@@ -751,6 +782,9 @@ public class MainActivity extends AppCompatActivity {
                 case BluetoothProfile.STATE_DISCONNECTED:
                     Log.e("gattCallback", "STATE_DISCONNECTED");
                     imgBleConnect.setBackgroundResource(mipmap.ble_disconnect);
+                    btnSendEcg.setText("START ECG");
+                    btnSendSpo2.setText("START SPO2");
+                    btnSendBloodPressure.setText("START");
                     onDestroy();
                     break;
                 default:
@@ -775,14 +809,14 @@ public class MainActivity extends AppCompatActivity {
                 /*get the write characteristic from the service*/
 //                mWriteCharacteristic = mCustomService.getCharacteristic(UUID.fromString("D973F2E2-B19E-11E2-9E96-0800200C9A66"));
 //                mWriteCharacteristic = mCustomService.getCharacteristic(UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e"));
-                mWriteCharacteristic = mCustomService.getCharacteristic(services.get(2).getCharacteristics().get(0).getUuid());
-                Log.w("writeCharacteristic", services.get(2).getCharacteristics().get(0).getUuid().toString());
+                mWriteCharacteristic = mCustomService.getCharacteristic(services.get(2).getCharacteristics().get(1).getUuid());
+                Log.w("writeCharacteristic", services.get(2).getCharacteristics().get(1).getUuid().toString());
 
                 /*get the read characteristic from the service*/
 //                mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("d973f2e1-b19e-11e2-9e96-0800200c9a66"));
 //                mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
-                mReadCharacteristic = mCustomService.getCharacteristic(services.get(2).getCharacteristics().get(1).getUuid());
-                Log.w("writeCharacteristic", services.get(2).getCharacteristics().get(1).getUuid().toString());
+                mReadCharacteristic = mCustomService.getCharacteristic(services.get(2).getCharacteristics().get(0).getUuid());
+                Log.w("writeCharacteristic", services.get(2).getCharacteristics().get(0).getUuid().toString());
 
                 /*turn on notification to listen data on ReadCharacteristic*/
                 if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -813,159 +847,141 @@ public class MainActivity extends AppCompatActivity {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             Log.d("onCharacteristicChanged", "onCharacteristicChanged" + Arrays.toString(characteristic.getValue()));
-            DataPoint[] DataPoint_ecg = new DataPoint[characteristic.getValue().length/2];
-            if(characteristic.getValue().length >= 19){
-//                    LineData data = mpLineChart.getData();
-//                    mpLineChart.invalidate();
+            //Read ECG graph
+            if(characteristic.getValue()[0] == MODE_READ_ECG_GRAPH){
+                int[] dataReadFromBle = new int[10];
+                for(int i = 0; i < 10; i++){
+                    dataReadFromBle[i] = (Byte.toUnsignedInt(characteristic.getValue()[2*i]) << 8) + Byte.toUnsignedInt(characteristic.getValue()[2*i + 1]);
+                }
+                if(layoutEcgGraph.getVisibility() == View.VISIBLE && btnSendEcg.getText().toString().equals("STOP ECG")){
+                    for(int i = 1; i < 10; i++){
+                        if(i % 2 == 0){
+                            final CountDownLatch latch = new CountDownLatch(1);
+                            int finalI = i;
+                            dataMinMaxGraphEcgValue[countDataMinMaxGraphEcg] = dataReadFromBle[i];
+                            countDataMinMaxGraphEcg++;
+                            if(countDataMinMaxGraphEcg >= bufferMinMaxXGraph){
+                                countDataMinMaxGraphEcg = 0;
+                            }
+                            y_min_ecg = dataMinMaxGraphEcgValue[10];
+                            y_max_ecg = dataMinMaxGraphEcgValue[10];
+                            for(int j = 0; j < bufferMinMaxXGraph; j++){
+                                if(y_min_ecg > dataMinMaxGraphEcgValue[j]){
+                                    y_min_ecg = dataMinMaxGraphEcgValue[j];
+                                }
+                                if(y_max_ecg < dataMinMaxGraphEcgValue[j]){
+                                    y_max_ecg = dataMinMaxGraphEcgValue[j];
+                                }
+                            }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Log.d("onCharacteristicChanged", "draw Ecg: " + String.valueOf(dataReadFromBle[finalI]));
+                                    x_ecg += 8;
+                                    graphEcg.getViewport().setMinY(y_min_ecg - 200);
+                                    graphEcg.getViewport().setMaxY(y_max_ecg + 200);
+                                    seriesEcg.appendData(new DataPoint(x_ecg, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
+                                    latch.countDown();
+                                }
+                            });
+                            try {
+                                latch.await();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+            //Read Ir Value graph
+            if(characteristic.getValue()[0] == MODE_READ_SPO2_GRAPH){
+                if(layoutSpo2Graph.getVisibility() == View.VISIBLE && btnSendSpo2.getText().toString().equals("STOP SPO2")){
+
                     int[] dataReadFromBle = new int[10];
-                    for(int i = 0; i < 10; i++){
+                    for(int i = 0; i < characteristic.getValue().length/2; i++){
                         dataReadFromBle[i] = (Byte.toUnsignedInt(characteristic.getValue()[2*i]) << 8) + Byte.toUnsignedInt(characteristic.getValue()[2*i + 1]);
                     }
-                    //Read ECG graph
-                    if(dataReadFromBle[0] == MODE_READ_ECG_GRAPH){
-                        if(!swSelectGraph.isChecked() && btnSendEcg.getText().toString().equals("STOP ECG")){
-                            count_to_break_graph_ecg ++;
-                            if(count_to_break_graph_ecg > 14){
-                                count_to_break_graph_ecg = 0;
+
+                    for(int i = 1; i < characteristic.getValue().length/2; i++){
+                        if(i % 2 == 0){
+                            final CountDownLatch latch = new CountDownLatch(1);
+                            int finalI = i;
+                            dataMinMaxGraphIrValue[countDataMinMaxGraphIrValue] = dataReadFromBle[i];
+                            countDataMinMaxGraphIrValue++;
+                            if(countDataMinMaxGraphIrValue >= bufferMinMaxXGraph){
+                                countDataMinMaxGraphIrValue = 0;
                             }
-                            if(count_to_break_graph_ecg <= 14){
-                                for(int i = 1; i < 10; i++){
-                                    if(i % 2 == 0){
-                                        final CountDownLatch latch = new CountDownLatch(1);
-                                        int finalI = i;
-                                        runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                Log.d("onCharacteristicChanged", "draw Ecg: " + String.valueOf(dataReadFromBle[finalI]));
-                                                x_ecg += 8;
-                                                seriesEcg.appendData(new DataPoint(x_ecg, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
-                                                //------ MP CHART--------
-//                                            data.addEntry(new Entry(x_ecg, (float) dataReadFromBle[finalI]), 0);
-                                                //notify chart data data changed
-//                                            mpLineChart.notifyDataSetChanged();
-//                                            mpLineChart.setVisibleXRange(0,1000);
-//                                            mpLineChart.moveViewToX(data.getXMax());
-                                                //-----------------------
-                                                latch.countDown();
-                                            }
-                                        });
-                                        try {
-                                            latch.await();
-//                                  synchronized(lock){lock.wait();}
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
+                            y_min_spo2 = dataMinMaxGraphIrValue[10];
+                            y_max_spo2 = dataMinMaxGraphIrValue[10];
+                            for(int j = 0; j < bufferMinMaxXGraph; j++){
+                                if(y_min_spo2 > dataMinMaxGraphIrValue[j]){
+                                    y_min_spo2 = dataMinMaxGraphIrValue[j];
+                                }
+                                if(y_max_spo2 < dataMinMaxGraphIrValue[j]){
+                                    y_max_spo2 = dataMinMaxGraphIrValue[j];
                                 }
                             }
-
-                        }
-                    }
-                    //Read Spo2 graph
-                    if(dataReadFromBle[0] == MODE_READ_SPO2_GRAPH){
-                        if(swSelectGraph.isChecked() && btnSendSpo2.getText().toString().equals("STOP SPO2")){
-                            for(int i = 1; i < 10; i++){
-                                final CountDownLatch latch = new CountDownLatch(1);
-                                int finalI = i;
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        Log.d("onCharacteristicChanged", "draw Spo2: " + String.valueOf(dataReadFromBle[finalI]));
-                                        x_spo2 += 5;
-                                        if(dataReadFromBle[finalI] < y_min_spo2 || dataReadFromBle[finalI] > y_max_spo2){
-                                            y_min_spo2 = dataReadFromBle[finalI] - 200;
-                                            y_max_spo2 = dataReadFromBle[finalI] + 200;
-                                        }
-                                        graphSpo2.getViewport().setMinY(y_min_spo2);
-                                        graphSpo2.getViewport().setMaxY(y_max_spo2);
-                                        seriesSpo2.appendData(new DataPoint(x_spo2, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
-
-                                        //------ MP CHART--------
-//                                      data.addEntry(new Entry(x, (float) dataEcg), 0);
-
-//                                      //notify chart data data changed
-//                                      mpLineChart.notifyDataSetChanged();
-//                                      mpLineChart.setVisibleXRange(0,1000);
-//                                      mpLineChart.moveViewToX(data.getXMax());
-
-                                        //-----------------------
-                                        latch.countDown();
-                                    }
-                                });
-                                try {
-                                    latch.await();
-//                                  synchronized(lock){lock.wait();}
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Log.d("onCharacteristicChanged", "draw Spo2: " + String.valueOf(y_min_spo2) + " - " + String.valueOf(y_max_spo2));
+                                    x_spo2 += 5;
+                                    graphSpo2.getViewport().setMinY(y_min_spo2 - 20);
+                                    graphSpo2.getViewport().setMaxY(y_max_spo2 + 20);
+                                    seriesSpo2.appendData(new DataPoint(x_spo2, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
+                                    latch.countDown();
                                 }
+                            });
+                            try {
+                                latch.await();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
                             }
                         }
                     }
-                    //Read Spo2 heart rate
-                    if(dataReadFromBle[0] == MODE_READ_HEART_RATE){
-                        final CountDownLatch latch = new CountDownLatch(1);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                txtDataHeartRate.setText(String.valueOf(dataReadFromBle[1]) + "bpm");
-                                latch.countDown();
-                            }
-                        });
-                        try {
-                            latch.await();
-//                                  synchronized(lock){lock.wait();}
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    //Read Spo2 heart rate
-                    if(dataReadFromBle[0] == MODE_READ_SPO2){
-                        count_to_update_data_spo2++;
-                        final CountDownLatch latch = new CountDownLatch(1);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if(count_to_update_data_spo2 >= 10){
-//                                    txtDataSpo2.setText(String.valueOf(dataReadFromBle[1]) + "%");
-                                    count_to_update_data_spo2 = 0;
-                                    txtDataSpo2.setText(String.valueOf(new Random().nextInt(99-96) + 96) + "%");
-                                }
-
-                                latch.countDown();
-                            }
-                        });
-                        try {
-                            latch.await();
-    //                                  synchronized(lock){lock.wait();}
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    //Read Spo2 heart rate
-                    if(dataReadFromBle[0] == MODE_READ_TEMP_AND_BATTERY){
-                        final CountDownLatch latch = new CountDownLatch(1);
-                        count_to_update_data_spo2++;
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                txtTemperature.setText(String.valueOf(dataReadFromBle[1]) + "*C");
-                                txtBattery.setText(String.valueOf(dataReadFromBle[2]) + "%");
-                                if(count_to_update_data_spo2 >= 10){
-                                    count_to_update_data_spo2 = 0;
-                                    txtDataSpo2.setText(String.valueOf(new Random().nextInt(99-96) + 96) + "%");
-                                }
-                                latch.countDown();
-                            }
-                        });
-                        try {
-                            latch.await();
-                            //                                  synchronized(lock){lock.wait();}
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
                 }
+            }
+
+            //Read max32664 calibration
+            if(characteristic.getValue()[0] == MODE_READ_PROGRESS_CALIBRATION){
+                final CountDownLatch latch = new CountDownLatch(1);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        txtBPTLoadProgressMax32664.setText("Loading " + String.valueOf(characteristic.getValue()[1] + "%"));
+                        prbBPTLoadProgressMax32664.setProgress(characteristic.getValue()[1]);
+                        if(characteristic.getValue()[1] == 100){
+                            rlBPTLoadProgressMax32664.setVisibility(View.INVISIBLE);
+                            btnSendBloodPressure.setClickable(true);
+                        }
+                        latch.countDown();
+                    }
+                });
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            //Read blood pressure
+            else if(characteristic.getValue()[0] == MODE_READ_BLOOD_PRESSURE){
+                final CountDownLatch latch = new CountDownLatch(1);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        txtBPTHeartRate.setText(String.valueOf(characteristic.getValue()[1]) + "bpm");
+                        txtBPTSpo2.setText(String.valueOf(characteristic.getValue()[2]) + "%");
+                        txtBPTLowBloodPressure.setText(String.valueOf(characteristic.getValue()[3]));
+                        txtBPTHighBloodPressure.setText(String.valueOf(characteristic.getValue()[4]));
+                        latch.countDown();
+                    }
+                });
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         @Override

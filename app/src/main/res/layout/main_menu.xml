@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:weightSum="2"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_weight="1"
+            android:weightSum="5"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <RelativeLayout
+                android:id="@+id/rlLogoEcgGraph"
+                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <pl.droidsonroids.gif.GifImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/ecg_system_gif" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="ECG Recorder" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:id="@+id/rlLogoSpo2Graph"
+                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/spo2" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Pulse Oximeter" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:background="@mipmap/rounded_rectangle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <pl.droidsonroids.gif.GifImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/temperature_gif" />
+
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Thermometer" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:background="@mipmap/rounded_rectangle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <pl.droidsonroids.gif.GifImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/health_checkup_gif" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Daily Check" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:background="@mipmap/rounded_rectangle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/review" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Review" />
+
+            </RelativeLayout>
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_weight="1"
+            android:weightSum="5"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <RelativeLayout
+                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <ImageView
+                    android:id="@+id/imgBatteryLevel"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/battery" />
+
+                <TextView
+                    android:id="@+id/txtBattery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Battery 50%"
+                    android:textStyle="bold" />
+
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:id="@+id/rlLogoBloodPressure"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/blood_pressure" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Blood Pressure" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:background="@mipmap/rounded_rectangle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <pl.droidsonroids.gif.GifImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/walking_gif" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Pedometer" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:background="@mipmap/rounded_rectangle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <ImageView
+                    android:id="@+id/imgBleConnect"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/ble_disconnect" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Bluetooth"
+                    android:textStyle="bold" />
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_weight="1"
+                android:background="@mipmap/rounded_rectangle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/round_rect_shape" />
+
+                <pl.droidsonroids.gif.GifImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginBottom="60dp"
+                    android:background="@mipmap/setting_gif" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="30dp"
+                    android:text="Setting" />
+
+            </RelativeLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+
+
+</RelativeLayout>

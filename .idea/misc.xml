@@ -3,8 +3,17 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/drawable-v24/circle.xml" value="0.2215" />
         <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.23541666666666666" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/drawable/round_rect_shape.xml" value="0.21" />
         <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/activity_main.xml" value="0.21927083333333333" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/blood_pressure.xml" value="0.2234375" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/ecg_graph.xml" value="0.2015625" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/logo_bar_menu.xml" value="0.2015625" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/main_menu.xml" value="0.1890625" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/pulse_oxi_graph.xml" value="0.2015625" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/round_rect_shape.xml" value="0.2015625" />
+        <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/layout/spo2_graph.xml" value="0.2015625" />
         <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.23541666666666666" />
         <entry key="..\:/AndroidStudioProjects/ECG/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" value="0.23541666666666666" />
       </map>

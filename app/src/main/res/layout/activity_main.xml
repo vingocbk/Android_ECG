@@ -8,105 +8,106 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <RelativeLayout
-        android:id="@+id/rlGraphEcg"
-        android:visibility="visible"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <Button
-            android:id="@+id/btnSendEcg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="70dp"
-            android:alpha="0.4"
-            android:text="@string/Start_ECG" />
+<!--    <RelativeLayout-->
+<!--        android:id="@+id/rlGraphEcg"-->
+<!--        android:visibility="visible"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent">-->
+<!--        <Button-->
+<!--            android:id="@+id/btnSendEcg"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginStart="70dp"-->
+<!--            android:alpha="0.4"-->
+<!--            android:text="@string/Start_ECG" />-->
 
-        <com.jjoe64.graphview.GraphView
-            android:id="@+id/graphEcg"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="visible" />
-
-
-    </RelativeLayout>
-
-    <RelativeLayout
-        android:id="@+id/rlGraphSpo2"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="invisible">
-
-        <Button
-            android:id="@+id/btnSendSpo2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="70dp"
-            android:alpha="0.4"
-            android:text="@string/Start_SPO2"
-            android:visibility="visible" />
-
-        <com.jjoe64.graphview.GraphView
-            android:id="@+id/graphSpo2"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="visible" />
-
-    </RelativeLayout>
+<!--        <com.jjoe64.graphview.GraphView-->
+<!--            android:id="@+id/graphEcg"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:visibility="visible" />-->
 
 
-    <LinearLayout
-        android:layout_width="100dp"
-        android:layout_height="match_parent"
-        android:layout_alignParentEnd="true"
-        android:gravity="center"
-        android:orientation="vertical">
+<!--    </RelativeLayout>-->
 
-        <pl.droidsonroids.gif.GifImageView
-            android:background="@mipmap/temperature"
-            android:layout_width="50dp"
-            android:layout_height="50dp"/>
-        <TextView
-            android:id="@+id/txtTemperature"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="37*C"
-            android:textStyle="bold"
-            android:textSize="20sp" />
+<!--    <RelativeLayout-->
+<!--        android:id="@+id/rlGraphSpo2"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:visibility="invisible">-->
 
-        <ImageView
-            android:id="@+id/imgSpo2"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_gravity="center"
-            android:background="@mipmap/spo2" />
+<!--        <Button-->
+<!--            android:id="@+id/btnSendSpo2"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginStart="70dp"-->
+<!--            android:alpha="0.4"-->
+<!--            android:text="@string/Start_SPO2"-->
+<!--            android:visibility="visible" />-->
 
-        <TextView
-            android:id="@+id/txtDataSpo2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="96%"
-            android:textStyle="bold"
-            android:textSize="20sp" />
+<!--        <com.jjoe64.graphview.GraphView-->
+<!--            android:id="@+id/graphSpo2"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:visibility="visible" />-->
 
-        <ImageView
-            android:id="@+id/imgHeartRate"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_gravity="center"
-            android:background="@mipmap/heartrate" />
+<!--    </RelativeLayout>-->
 
-        <TextView
-            android:id="@+id/txtDataHeartRate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="80bpm"
-            android:textStyle="bold"
-            android:textSize="20sp" />
 
-    </LinearLayout>
+<!--    <LinearLayout-->
+<!--        android:layout_width="100dp"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:layout_alignParentEnd="true"-->
+<!--        android:gravity="center"-->
+<!--        android:visibility="invisible"-->
+<!--        android:orientation="vertical">-->
+
+<!--        <pl.droidsonroids.gif.GifImageView-->
+<!--            android:background="@mipmap/temperature_gif"-->
+<!--            android:layout_width="50dp"-->
+<!--            android:layout_height="50dp"/>-->
+<!--        <TextView-->
+<!--            android:id="@+id/txtTemperature"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:text="37*C"-->
+<!--            android:textStyle="bold"-->
+<!--            android:textSize="20sp" />-->
+
+<!--        <ImageView-->
+<!--            android:id="@+id/imgSpo2"-->
+<!--            android:layout_width="50dp"-->
+<!--            android:layout_height="50dp"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:background="@mipmap/spo2" />-->
+
+<!--        <TextView-->
+<!--            android:id="@+id/txtDataSpo2"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:text="96%"-->
+<!--            android:textStyle="bold"-->
+<!--            android:textSize="20sp" />-->
+
+<!--&lt;!&ndash;        <ImageView&ndash;&gt;-->
+<!--&lt;!&ndash;            android:id="@+id/imgHeartRate"&ndash;&gt;-->
+<!--&lt;!&ndash;            android:layout_width="50dp"&ndash;&gt;-->
+<!--&lt;!&ndash;            android:layout_height="50dp"&ndash;&gt;-->
+<!--&lt;!&ndash;            android:layout_gravity="center"&ndash;&gt;-->
+<!--&lt;!&ndash;            android:background="@mipmap/heartrate" />&ndash;&gt;-->
+
+<!--        <TextView-->
+<!--            android:id="@+id/txtDataHeartRate"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:text="80bpm"-->
+<!--            android:textStyle="bold"-->
+<!--            android:textSize="20sp" />-->
+
+<!--    </LinearLayout>-->
 
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/mpLineChart"
@@ -138,71 +139,83 @@
             android:layout_toEndOf="@+id/txtRealTime"
             android:visibility="invisible" />
 
-        <TextView
-            android:id="@+id/txtBattery"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_toEndOf="@+id/chekRealTime"
-            android:text="90%" />
+        <!--        <TextView-->
+        <!--            android:id="@+id/txtBattery"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_centerVertical="true"-->
+        <!--            android:layout_toEndOf="@+id/chekRealTime"-->
+        <!--            android:text="90%" />-->
 
-        <ImageView
-            android:id="@+id/imgBatteryLevel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_toEndOf="@id/txtBattery"
-            android:background="@mipmap/battery" />
+        <!--        <ImageView-->
+        <!--            android:id="@+id/imgBatteryLevel"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_centerVertical="true"-->
+        <!--            android:layout_toEndOf="@id/txtBattery"-->
+        <!--            android:background="@mipmap/battery" />-->
 
-        <ImageView
-            android:id="@+id/imgBleConnect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:background="@mipmap/ble_disconnect" />
+        <!--        <ImageView-->
+        <!--            android:id="@+id/imgBleConnect"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_centerInParent="true"-->
+        <!--            android:background="@mipmap/ble_disconnect" />-->
 
-        <TextView
-            android:id="@+id/txtFrequency"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="50dp"
-            android:layout_toEndOf="@+id/imgBleConnect"
-            android:text="@string/frequency"
-            android:visibility="invisible" />
 
-        <Spinner
-            android:id="@+id/spnFrequency"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_toEndOf="@+id/txtFrequency"
-            android:visibility="invisible" />
-
-        <Switch
-            android:id="@+id/swSelectGraph"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_toLeftOf="@+id/imgLogoElcom" />
-
-        <ImageView
-            android:id="@+id/imgLogoElcom"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:background="@mipmap/elcom_logo"
-            android:visibility="invisible" />
+        <!--        <Switch-->
+        <!--            android:id="@+id/swSelectGraph"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_centerVertical="true"-->
+        <!--            android:layout_toLeftOf="@+id/imgLogoElcom" />-->
 
 
     </RelativeLayout>
 
+    <include
+        android:id="@+id/layout_bar_menu"
+        layout="@layout/logo_bar_menu"
+        android:layout_width="match_parent"
+        android:layout_height="40dp" />
+
+    <include
+        android:id="@+id/layoutMainMenu"
+        layout="@layout/main_menu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/layout_bar_menu" />
+
+    <include
+        android:id="@+id/layoutEcgGraph"
+        layout="@layout/ecg_graph"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/layout_bar_menu"
+        android:visibility="invisible" />
+
+    <include
+        android:id="@+id/layoutSpo2Graph"
+        layout="@layout/pulse_oxi_graph"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/layout_bar_menu"
+        android:visibility="invisible" />
+
+    <include
+        android:id="@+id/layoutBloodPressure"
+        layout="@layout/blood_pressure"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/layout_bar_menu"
+        android:visibility="invisible" />
+
+
     <ProgressBar
         android:id="@+id/prgLoadBluetooth"
-        android:layout_centerInParent="true"
+        android:visibility="invisible"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true" />
 
 </RelativeLayout>
