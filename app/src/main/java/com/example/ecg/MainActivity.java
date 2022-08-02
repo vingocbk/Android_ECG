@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int MODE_READ_BLOOD_PRESSURE = 3;
     private static final int MODE_READ_PROGRESS_CALIBRATION = 4;
     private static final int MODE_READ_TEMP_AND_BATTERY = 5;
-    private static final int MODE_READ_BATTERY = 6;
+    private static final int MODE_READ_HEART_RATE_FROM_ECG = 6;
 
     //    BluetoothGatt mGatt;
     BluetoothGattService mCustomService;
@@ -878,8 +878,8 @@ public class MainActivity extends AppCompatActivity {
                                 public void run() {
                                     Log.d("onCharacteristicChanged", "draw Ecg: " + String.valueOf(dataReadFromBle[finalI]));
                                     x_ecg += 8;
-                                    graphEcg.getViewport().setMinY(y_min_ecg - 200);
-                                    graphEcg.getViewport().setMaxY(y_max_ecg + 200);
+                                    graphEcg.getViewport().setMinY(y_min_ecg - 150);
+                                    graphEcg.getViewport().setMaxY(y_max_ecg + 150);
                                     seriesEcg.appendData(new DataPoint(x_ecg, (double) dataReadFromBle[finalI]), true, 1000, false);   //add data to graph
                                     latch.countDown();
                                 }
@@ -891,6 +891,23 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
+                }
+            }
+            //Read Heart Rate From ECG
+            else if(characteristic.getValue()[0] == MODE_READ_HEART_RATE_FROM_ECG){
+                final CountDownLatch latch = new CountDownLatch(1);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        int dataReadFromBle = (Byte.toUnsignedInt(characteristic.getValue()[1]) << 8) + Byte.toUnsignedInt(characteristic.getValue()[2]);
+                        txtECGDataHeartRate.setText(String.valueOf(dataReadFromBle));
+                        latch.countDown();
+                    }
+                });
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
             //Read Ir Value graph
@@ -970,6 +987,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         txtBPTHeartRate.setText(String.valueOf(characteristic.getValue()[1]) + "bpm");
+                        if(characteristic.getValue()[2] == 100){
+                            characteristic.getValue()[2] = 99;
+                        }
                         txtBPTSpo2.setText(String.valueOf(characteristic.getValue()[2]) + "%");
                         txtBPTLowBloodPressure.setText(String.valueOf(characteristic.getValue()[3]));
                         txtBPTHighBloodPressure.setText(String.valueOf(characteristic.getValue()[4]));
@@ -982,6 +1002,7 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             }
+
         }
 
         @Override
